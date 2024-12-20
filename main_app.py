@@ -11,9 +11,9 @@ Created on Fri Dec 20 22:19:58 2024
 import streamlit as st
 
 def main():
-    st.title("📈 Stock Forecasting & Anomaly Detection App")
+    st.title("📈 Stock Forecasting ")
     st.markdown("""
-        Welcome to the Stock Forecasting & Anomaly Detection App! Use the sidebar to navigate through the steps:
+        Welcome to the Stock Forecasting App! Use the sidebar to navigate through the steps:
         1. **Fetch Raw Data**
         2. **Clean Data**
         3. **Train Prophet Model**

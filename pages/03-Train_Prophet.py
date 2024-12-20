@@ -11,6 +11,7 @@ Created on Fri Dec 20 22:21:23 2024
 import streamlit as st
 from prophet import Prophet
 import pandas as pd
+from streamlit_extras.switch_page_button import switch_page  # Import switch_page for navigation
 
 def add_holiday_effects():
     """
@@ -81,6 +82,21 @@ def main():
                 st.session_state['holidays'] = holidays
             else:
                 st.error("Prophet model training failed.")
+    
+    # Navigation buttons
+    st.markdown("---")
+    
+    # Show "Return to Previous Step" button only if the model has not been trained
+    if 'prophet_model' not in st.session_state:
+        st.markdown("### Return to the Previous Step:")
+        if st.button("Previous Step: Clean Data"):
+            switch_page("clean data")
+    
+    # Show "Next Step" button only if the model has been trained
+    if 'prophet_model' in st.session_state:
+        st.markdown("### Navigate to the Next Step:")
+        if st.button("Next Step: Forecast and Anomaly Detection"):
+            switch_page("forecast anomaly detection")
 
 if __name__ == "__main__":
     main()

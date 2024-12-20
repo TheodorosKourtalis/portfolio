@@ -71,7 +71,7 @@ def main():
             else:
                 st.error("Failed to fetch data. Please check the stock symbol and date range.")
     st.markdown("---")
-    st.markdown("### Select a Step to Proceed:")
+    st.markdown("### Select a Step:")
     
     # Navigation Buttons with Correct Page Titles
     if st.button("Step 1: Fetch Raw Data"):

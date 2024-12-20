@@ -10,3 +10,4 @@ hmmlearn
 keras
 plotly
 statsmodels
+tensorflow

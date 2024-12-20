@@ -404,11 +404,11 @@ def main():
                 plot_percentage_change(forecast, key='daily_pct_change_plot')
             
             # Additional plots
-            col3 = st.columns(1)
+            col3, col4 = st.columns(2)
             with col3:
-                # Plot Percentage Change
-                 plot_forecast_streamlit(cleaned_data, forecast, symbol, key='forecast_plot')
-
+                plot_percentage_change_weekly(forecast, key='weekly_pct_change_plot')
+            with col4:
+                plot_cumulative_forecast(forecast, key='cumulative_forecast_plot')
     
     # Navigation buttons
     st.markdown("---")

@@ -149,6 +149,9 @@ def plot_percentage_change(forecast, last_actual_price):
         # Sort forecast by date to ensure correct order
         forecast_sorted = forecast.sort_values('ds')
         
+        # Exclude the last_actual_date from percentage change if present
+        # Assuming forecast starts the day after the last actual date
+        
         # Separate positive and negative changes for coloring
         colors = ['green' if val >= 0 else 'red' for val in forecast_sorted['pct_change']]
         

@@ -18,11 +18,15 @@ def load_page(page_name):
     """
     try:
         module = importlib.import_module(f"pages.forecasting_steps.{page_name}")
-        module.main()  # Call the main function in the loaded module (if it exists)
-    except ModuleNotFoundError as e:
+        # Check if the module has a main() function
+        if hasattr(module, "main"):
+            module.main()
+        else:
+            st.error(f"The module {page_name} does not have a `main` function.")
+    except ModuleNotFoundError:
         st.error(f"Module not found: {page_name}. Ensure the file exists in the forecasting_steps directory.")
-    except AttributeError:
-        st.error(f"The module {page_name} does not have a `main` function.")
+    except Exception as e:
+        st.error(f"An error occurred while loading the page: {e}")
 
 def clean_data(data):
     try:
@@ -44,7 +48,8 @@ def clean_data(data):
 
 def main():
     # Set the current page in session_state
-    st.session_state["current_page"] = "clean_data"
+    if "current_page" not in st.session_state:
+        st.session_state["current_page"] = "clean_data"
 
     st.header("🧹 Step 2: Clean Data")
     

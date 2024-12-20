@@ -358,20 +358,5 @@ def main():
             with col3:
                 plot_percentage_change_weekly(forecast, key='weekly_pct_change_plot')
     
-    # Navigation buttons
-    st.markdown("---")
-    
-    # Navigation Section
-    st.markdown("### Navigate to Other Steps:")
-    
-    col_nav1, col_nav2 = st.columns(2)
-    with col_nav1:
-        if st.button("Go to Step 1: Fetch Raw Data"):
-            switch_page("fetch raw data")  # Redirect to Step 1
-    
-    with col_nav2:
-        if st.button("Previous Step: Train Prophet Model"):
-            switch_page("train prophet")
-
 if __name__ == "__main__":
     main()

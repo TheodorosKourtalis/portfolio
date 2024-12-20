@@ -11,36 +11,53 @@ Created on Fri Dec 20 22:21:23 2024
 import streamlit as st
 from prophet import Prophet
 import pandas as pd
+
 def add_holiday_effects(model, data):
-    holidays = pd.DataFrame({
-        'holiday': 'major_holidays',
-        'ds': pd.to_datetime(['2023-01-01', '2023-07-04', '2023-12-25']),
-        'lower_window': 0,
-        'upper_window': 1,
-    })
-    model.add_country_holidays(country_name='US')
-    data['holiday_effects'] = data['ds'].apply(lambda x: 1 if x in holidays['ds'].values else 0)
-    return model, data, holidays
+    """
+    Adds major US holidays to the Prophet model and marks them in the data.
+    """
+    try:
+        holidays = pd.DataFrame({
+            'holiday': 'major_holidays',
+            'ds': pd.to_datetime(['2023-01-01', '2023-07-04', '2023-12-25']),
+            'lower_window': 0,
+            'upper_window': 1,
+        })
+        model.add_country_holidays(country_name='US')
+        data['holiday_effects'] = data['ds'].apply(lambda x: 1 if x in holidays['ds'].values else 0)
+        return model, data, holidays
+    except Exception as e:
+        st.error(f"Error adding holiday effects: {e}")
+        return model, data, pd.DataFrame()
 
 def train_prophet_model(data):
+    """
+    Trains the Prophet model with the provided data.
+    """
     try:
-        model = Prophet(daily_seasonality=True, yearly_seasonality=True, weekly_seasonality=True)
+        model = Prophet(
+            daily_seasonality=True,
+            yearly_seasonality=True,
+            weekly_seasonality=True
+        )
         model.add_seasonality(name='monthly', period=30.5, fourier_order=5)
         model, data, holidays = add_holiday_effects(model, data)
         model.fit(data)
         return model, holidays
     except Exception as e:
         st.error(f"Error training Prophet model: {e}")
-        return None, None
+        return None, pd.DataFrame()
 
 def main():
     st.header("📊 Step 3: Train Prophet Model")
     
+    # Check if cleaned data is available in session_state
     if 'cleaned_data' not in st.session_state:
         st.warning("No cleaned data found. Please complete Step 2: Clean Data.")
         return
     
     data = st.session_state['cleaned_data']
+    symbol = st.session_state.get('symbol', 'MSFT')  # Default symbol if not set
     
     st.write("**Cleaned Data Preview:**")
     st.dataframe(data.head())
@@ -52,6 +69,7 @@ def main():
             model, holidays = train_prophet_model(data)
             if model is not None:
                 st.success("Prophet model trained successfully!")
+                # Store the model and related data in session_state
                 st.session_state['prophet_model'] = model
                 st.session_state['holidays'] = holidays
             else:

@@ -65,5 +65,17 @@ def main():
             else:
                 st.error("Data cleaning failed. Please check the raw data.")
 
+    # Navigation Buttons with Correct Page Titles
+    if st.button("Step 1: Fetch Raw Data"):
+        switch_page("fetch raw data")
+    
+    if st.button("Step 2: Clean Data"):
+        switch_page("clean data")
+    
+    if st.button("Step 3: Train Prophet Model"):
+        switch_page("train prophet")
+    
+    if st.button("Step 4: Forecast and Anomaly Detection"):
+        switch_page("forecast anomaly detection")
 if __name__ == "__main__":
     main()

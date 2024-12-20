@@ -20,16 +20,23 @@ def main():
     """)
     
     st.markdown("---")
-    st.markdown("### Navigate to the Steps Below:")
+    st.markdown("### Select a Step to Proceed:")
     
-    # Navigation using markdown links for multi-page apps
-    st.markdown("- [Step 1: Fetch Raw Data](./1_Fetch_Raw_Data)")
-    st.markdown("- [Step 2: Clean Data](./2_Clean_Data)")
-    st.markdown("- [Step 3: Train Prophet Model](./3_Train_Prophet_Model)")
-    st.markdown("- [Step 4: Forecast](./4_Forecast)")
+    # Navigation Buttons
+    if st.button("Step 1: Fetch Raw Data"):
+        st.session_state["page"] = "1_Fetch_Raw_Data"
     
-    st.markdown("---")
-    st.markdown("**Start by clicking on Step 1 above or use the sidebar navigation.**")
+    if st.button("Step 2: Clean Data"):
+        st.session_state["page"] = "2_Clean_Data"
+    
+    if st.button("Step 3: Train Prophet Model"):
+        st.session_state["page"] = "3_Train_Prophet_Model"
+    
+    if st.button("Step 4: Forecast"):
+        st.session_state["page"] = "4_Forecast"
+
+    # Display the current page state for debugging (optional)
+    # st.write(f"Current Page: {st.session_state.get('page', 'None')}")
 
 if __name__ == "__main__":
     main()

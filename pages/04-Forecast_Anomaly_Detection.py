@@ -12,8 +12,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 from prophet import Prophet
-from datetime import datetime
-from streamlit_extras.switch_page_button import switch_page  # Import switch_page for navigation
+from streamlit_extras.switch_page_button import switch_page  # For navigation
 
 def forecast_prices(model, periods):
     """
@@ -54,8 +53,7 @@ def plot_forecast_streamlit(data, forecast, symbol):
         
         # Plot historical data
         fig.add_trace(go.Scatter(
-            x=data['ds'],
-            y=data['y'],
+            x=data['ds'], y=data['y'],
             mode='lines',
             name='Historical Stock Price',
             line=dict(color='blue')
@@ -64,8 +62,7 @@ def plot_forecast_streamlit(data, forecast, symbol):
         # Plot forecasted data
         forecast_positive = forecast[forecast['yhat'] > 0]
         fig.add_trace(go.Scatter(
-            x=forecast_positive['ds'],
-            y=forecast_positive['yhat'],
+            x=forecast_positive['ds'], y=forecast_positive['yhat'],
             mode='lines',
             name='Forecasted Price',
             line=dict(color='red')
@@ -73,16 +70,14 @@ def plot_forecast_streamlit(data, forecast, symbol):
         
         # Add confidence intervals
         fig.add_trace(go.Scatter(
-            x=forecast_positive['ds'],
-            y=forecast_positive['yhat_upper'],
+            x=forecast_positive['ds'], y=forecast_positive['yhat_upper'],
             mode='lines',
             name='Upper Confidence Interval',
             line=dict(color='lightcoral'),
             showlegend=False
         ))
         fig.add_trace(go.Scatter(
-            x=forecast_positive['ds'],
-            y=forecast_positive['yhat_lower'],
+            x=forecast_positive['ds'], y=forecast_positive['yhat_lower'],
             mode='lines',
             name='Lower Confidence Interval',
             line=dict(color='lightcoral'),
@@ -114,6 +109,14 @@ def plot_forecast_streamlit(data, forecast, symbol):
             marker=dict(color='purple', size=12, symbol='triangle-up'),
             showlegend=True
         ))
+        
+        # Add a vertical dashed line to indicate the transition point
+        fig.add_vline(
+            x=last_historical_date,
+            line=dict(color='black', dash='dash'),
+            annotation_text="Forecast Start",
+            annotation_position="top left"
+        )
         
         # Update layout for better aesthetics
         fig.update_layout(
@@ -185,6 +188,7 @@ def main():
             switch_page("fetch raw data")
         return
     
+    # Load session state data
     model = st.session_state['prophet_model']
     holidays = st.session_state['holidays']  # Not used here but kept for consistency
     cleaned_data = st.session_state['cleaned_data']
@@ -264,41 +268,42 @@ def main():
             else:
                 st.error("Forecast generation failed.")
     
- # If forecast is already generated, display the slider and related information dynamically
-if 'forecast' in st.session_state:
-    forecast = st.session_state['forecast']
-    
-    # Get the last actual date from the cleaned data
-    last_actual_date = cleaned_data['ds'].max()
-    
-    # Separate forecasted data from historical data
-    forecasted = forecast[forecast['ds'] > last_actual_date].reset_index(drop=True)
-    
-    # Check if the selected day is within the forecast period
-    if specific_day <= forecast_days and specific_day <= len(forecasted):
-        # Access the specific forecasted day using integer-based indexing
-        forecast_row = forecasted.iloc[specific_day - 1]
-        forecast_date = forecast_row['ds']
-        forecast_value = forecast_row['yhat']
-        forecast_lower = forecast_row['yhat_lower']
-        forecast_upper = forecast_row['yhat_upper']
+    # If forecast is already generated, display the slider and related information dynamically
+    if 'forecast' in st.session_state:
+        forecast = st.session_state['forecast']
         
-        # Display the forecasted value and confidence interval
-        st.markdown(
-            f"""
-            ### 📅 Forecast for {forecast_date.date()}:
-            - **Predicted Price:** ${forecast_value:,.2f}
-            - **Confidence Interval:** (${forecast_lower:,.2f}, ${forecast_upper:,.2f})
-            """
-        )
-    else:
-        st.warning("Selected day exceeds the forecast period.")
+        # Get the last actual date from the cleaned data
+        last_actual_date = cleaned_data['ds'].max()
+        
+        # Separate forecasted data from historical data
+        forecasted = forecast[forecast['ds'] > last_actual_date].reset_index(drop=True)
+        
+        # Check if the selected day is within the forecast period
+        if specific_day <= forecast_days and specific_day <= len(forecasted):
+            # Access the specific forecasted day using integer-based indexing
+            forecast_row = forecasted.iloc[specific_day - 1]
+            forecast_date = forecast_row['ds']
+            forecast_value = forecast_row['yhat']
+            forecast_lower = forecast_row['yhat_lower']
+            forecast_upper = forecast_row['yhat_upper']
+            
+            # Display the forecasted value and confidence interval
+            st.markdown(
+                f"""
+                ### 📅 Forecast for {forecast_date.date()}:
+                - **Predicted Price:** ${forecast_value:,.2f}
+                - **Confidence Interval:** (${forecast_lower:,.2f}, ${forecast_upper:,.2f})
+                """
+            )
+        else:
+            st.warning("Selected day exceeds the forecast period.")
+        
+        # Plot Forecast using Plotly
+        plot_forecast_streamlit(cleaned_data, forecasted, symbol)
+        
+        # Plot Percentage Change
+        plot_percentage_change(forecasted)
     
-    # Plot Forecast using Plotly
-    plot_forecast_streamlit(cleaned_data, forecasted, symbol)
-    
-    # Plot Percentage Change
-    plot_percentage_change(forecasted)
     # Navigation buttons
     st.markdown("---")
     
@@ -309,7 +314,6 @@ if 'forecast' in st.session_state:
         switch_page("fetch raw data")  # Redirect to Step 1
     
     # Show "Previous Step" button
-    st.markdown("### Return to the Previous Step:")
     if st.button("Previous Step: Train Prophet Model"):
         switch_page("train prophet")
 

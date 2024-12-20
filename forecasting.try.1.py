@@ -66,8 +66,13 @@ def fetch_stock_data(symbol, start_date, end_date):
 
 def clean_data(data):
     try:
+        # Display the initial raw data for inspection
+        st.write("Raw data preview:")
+        st.write(data.head())
+        
         # Check if the second row should be the header
         if not pd.api.types.is_datetime64_any_dtype(data.iloc[:, 0]):
+            st.warning("Detected metadata or extra header row. Adjusting...")
             # Reassign the second row as header and drop the first row
             data.columns = data.iloc[0]
             data = data[1:]
@@ -77,10 +82,10 @@ def clean_data(data):
 
         # Rename columns to standard names
         data = data.rename(columns={"Date": "ds", "Close": "y"})
-        
+
         # Ensure 'ds' and 'y' exist in the DataFrame
         if 'ds' not in data.columns or 'y' not in data.columns:
-            st.error("The data does not contain 'Date' or 'Close' columns.")
+            st.error("The data does not contain 'Date' or 'Close' columns. Please check the file format.")
             return None
 
         # Convert 'ds' to datetime and 'y' to numeric
@@ -90,11 +95,16 @@ def clean_data(data):
         # Drop rows with invalid 'ds' or 'y'
         data = data.dropna(subset=['ds', 'y'])
 
-        # Log cleaned data for debugging
-        st.write("Data cleaned successfully!")
-        st.write(data.head())  # Display the first few rows in Streamlit
-        
+        # Display cleaned data for inspection
+        st.write("Cleaned data preview:")
+        st.write(data.head())
+
         return data
+
+    except Exception as e:
+        st.error(f"Error during data cleaning: {e}")
+        st.write("Detailed error context:", e)
+        return None
 
     except Exception as e:
         st.error(f"Error during data cleaning: {e}")

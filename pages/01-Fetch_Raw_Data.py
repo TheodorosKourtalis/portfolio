@@ -29,7 +29,7 @@ def main():
     st.header("🔍 Step 1: Fetch Raw Data")
     
     # User Inputs
-    symbol = st.text_input("Enter Stock Symbol (e.g., AAPL, MSFT, GOOG)", "MSFT").upper()
+    symbol = st.text_input("Enter Stock Symbol (e.g., AAPL)", "MSFT").upper()
     start_date = st.date_input("Start Date", datetime(2020, 1, 1))
     end_date = st.date_input("End Date", datetime.today())
     fetch_button = st.button("Fetch Data")

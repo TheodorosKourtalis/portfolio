@@ -53,7 +53,8 @@ def plot_forecast_streamlit(data, forecast, symbol):
         
         # Plot historical data
         fig.add_trace(go.Scatter(
-            x=data['ds'], y=data['y'],
+            x=data['ds'],
+            y=data['y'],
             mode='lines',
             name='Historical Stock Price',
             line=dict(color='blue')
@@ -62,7 +63,8 @@ def plot_forecast_streamlit(data, forecast, symbol):
         # Plot forecasted data
         forecast_positive = forecast[forecast['yhat'] > 0]
         fig.add_trace(go.Scatter(
-            x=forecast_positive['ds'], y=forecast_positive['yhat'],
+            x=forecast_positive['ds'],
+            y=forecast_positive['yhat'],
             mode='lines',
             name='Forecasted Price',
             line=dict(color='red')
@@ -70,14 +72,16 @@ def plot_forecast_streamlit(data, forecast, symbol):
         
         # Add confidence intervals
         fig.add_trace(go.Scatter(
-            x=forecast_positive['ds'], y=forecast_positive['yhat_upper'],
+            x=forecast_positive['ds'],
+            y=forecast_positive['yhat_upper'],
             mode='lines',
             name='Upper Confidence Interval',
             line=dict(color='lightcoral'),
             showlegend=False
         ))
         fig.add_trace(go.Scatter(
-            x=forecast_positive['ds'], y=forecast_positive['yhat_lower'],
+            x=forecast_positive['ds'],
+            y=forecast_positive['yhat_lower'],
             mode='lines',
             name='Lower Confidence Interval',
             line=dict(color='lightcoral'),
@@ -110,14 +114,6 @@ def plot_forecast_streamlit(data, forecast, symbol):
             showlegend=True
         ))
         
-        # Add a vertical dashed line to indicate the transition point
-        fig.add_vline(
-            x=last_historical_date,
-            line=dict(color='black', dash='dash'),
-            annotation_text="Forecast Start",
-            annotation_position="top left"
-        )
-        
         # Update layout for better aesthetics
         fig.update_layout(
             title=f'Forecast for {symbol}',
@@ -133,6 +129,49 @@ def plot_forecast_streamlit(data, forecast, symbol):
         st.plotly_chart(fig, use_container_width=True)
     except Exception as e:
         st.error(f"Error plotting forecast for {symbol}: {e}")
+
+def plot_percentage_change(forecast):
+    """
+    Plot the percentage change between consecutive forecasted prices.
+    
+    Parameters:
+        forecast (pd.DataFrame): Forecasted stock data.
+    """
+    try:
+        # Sort forecast by date to ensure correct order
+        forecast_sorted = forecast.sort_values('ds')
+        
+        # Calculate percentage change between consecutive forecasted days
+        forecast_sorted['pct_change'] = forecast_sorted['yhat'].pct_change() * 100
+        
+        # Drop the first row which will have NaN percentage change
+        pct_change_data = forecast_sorted.dropna(subset=['pct_change'])
+        
+        # Separate positive and negative changes for coloring
+        colors = ['green' if val >= 0 else 'red' for val in pct_change_data['pct_change']]
+        
+        fig = go.Figure()
+        
+        fig.add_trace(go.Bar(
+            x=pct_change_data['ds'],
+            y=pct_change_data['pct_change'],
+            name='Percentage Change',
+            marker_color=colors
+        ))
+        
+        fig.update_layout(
+            title='Daily Percentage Change in Forecasted Prices',
+            xaxis_title='Date',
+            yaxis_title='Percentage Change (%)',
+            template='plotly_white',
+            width=1000,
+            height=400
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+    except Exception as e:
+        st.error(f"Error plotting percentage change: {e}")
+
 
 def plot_percentage_change(forecast):
     """

@@ -10,10 +10,10 @@ Created on Fri Dec 20 22:22:08 2024
 
 import streamlit as st
 import pandas as pd
-import numpy as np
 import plotly.graph_objects as go
 from prophet import Prophet
 from datetime import datetime
+from streamlit_extras.switch_page_button import switch_page  # Import switch_page for navigation
 
 def forecast_prices(model, periods):
     """
@@ -107,6 +107,39 @@ def plot_forecast_streamlit(data, forecast, symbol):
     except Exception as e:
         st.error(f"Error plotting forecast for {symbol}: {e}")
 
+def plot_percentage_change(forecast):
+    """
+    Plot the percentage change between historical and forecasted prices.
+    
+    Parameters:
+        forecast (pd.DataFrame): Forecasted stock data.
+    """
+    try:
+        # Calculate percentage change
+        forecast['pct_change'] = ((forecast['yhat'] - forecast['y']) / forecast['y']) * 100
+        
+        fig = go.Figure()
+        
+        fig.add_trace(go.Bar(
+            x=forecast['ds'],
+            y=forecast['pct_change'],
+            name='Percentage Change',
+            marker_color='orange'
+        ))
+        
+        fig.update_layout(
+            title='Percentage Change from Historical to Forecasted Prices',
+            xaxis_title='Date',
+            yaxis_title='Percentage Change (%)',
+            template='plotly_white',
+            width=1000,
+            height=400
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+    except Exception as e:
+        st.error(f"Error plotting percentage change: {e}")
+
 def main():
     st.header("🔮 Step 4: Forecast")
     
@@ -116,7 +149,6 @@ def main():
     if missing_keys:
         st.warning(f"Missing data in session state: {', '.join(missing_keys)}. Please complete the previous steps.")
         if st.button("Go to Step 1: Fetch Raw Data"):
-            from streamlit_extras.switch_page_button import switch_page
             switch_page("fetch raw data")
         return
     
@@ -127,9 +159,27 @@ def main():
     
     st.subheader(f"Generating Forecast for {symbol}")
     
+    # Number of days to forecast
     forecast_days = st.number_input("Number of days to forecast", min_value=1, max_value=365, value=30)
     
-
+    # Select specific day within the forecast period
+    specific_day = st.slider(
+        "Select the day to view forecasted value:",
+        min_value=1,
+        max_value=forecast_days,
+        value=15,
+        step=1
+    )
+    
+    # Stylish Pointer Before Forecast Generation
+    st.markdown(
+        """
+        <div style="text-align:center; font-size: 20px; margin: 20px 0;">
+            <span style="color: #555; font-weight: bold;">👇 Scroll Down to Generate Forecast 👇</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     
     forecast_button = st.button("Generate Forecast")
     
@@ -139,11 +189,11 @@ def main():
             if forecast is not None:
                 st.success("Forecast generated successfully!")
                 
-                # Nice looking pointer after success
+                # Stylish Pointer After Success
                 st.markdown(
                     """
                     <div style="text-align:center; font-size: 20px; margin: 20px 0;">
-                        <span style="color: #0078FF; font-weight: bold;">📊 Scroll Down for the Plot 📊</span>
+                        <span style="color: #0078FF; font-weight: bold;">📈 Scroll Down for Forecast Details 📈</span>
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -152,10 +202,41 @@ def main():
                 st.write("**Forecast Data Preview:**")
                 st.dataframe(forecast.tail())
                 
+                # Display forecasted value for the selected day
+                forecast_date = forecast['ds'].iloc[-forecast_days + specific_day - 1]
+                forecast_value = forecast['yhat'].iloc[-forecast_days + specific_day - 1]
+                forecast_lower = forecast['yhat_lower'].iloc[-forecast_days + specific_day - 1]
+                forecast_upper = forecast['yhat_upper'].iloc[-forecast_days + specific_day - 1]
+                
+                st.markdown(
+                    f"""
+                    ### 📅 Forecast for {forecast_date.date()}:
+                    - **Predicted Price:** ${forecast_value:,.2f}
+                    - **Confidence Interval:** (${forecast_lower:,.2f}, ${forecast_upper:,.2f})
+                    """
+                )
+                
                 # Plot Forecast using Plotly
                 plot_forecast_streamlit(cleaned_data, forecast, symbol)
+                
+                # Plot Percentage Change
+                plot_percentage_change(forecast)
             else:
                 st.error("Forecast generation failed.")
+    
+    # Navigation buttons
+    st.markdown("---")
+    
+    # Show "Next Step" button only if forecast is generated
+    if 'prophet_model' in st.session_state and 'cleaned_data' in st.session_state:
+        st.markdown("### Navigate to the Next Step:")
+        if st.button("Next Step: Forecast and Anomaly Detection"):
+            switch_page("forecast anomaly detection")
+    
+    # Show "Previous Step" button
+    st.markdown("### Return to the Previous Step:")
+    if st.button("Previous Step: Train Prophet Model"):
+        switch_page("train prophet")
 
 if __name__ == "__main__":
     main()

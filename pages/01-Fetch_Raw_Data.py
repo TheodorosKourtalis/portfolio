@@ -54,7 +54,9 @@ def main():
                 
                 # Rename columns for Prophet
                 date_column = 'Date' if 'Date' in data.columns else None
-                close_column = 'Close_MSFT' if 'Close_MSFT' in data.columns else 'Close'
+                # Assuming 'Close' column is present; adjust if different
+                close_column_candidates = [col for col in data.columns if 'Close' in col]
+                close_column = close_column_candidates[0] if close_column_candidates else None
                 
                 if date_column and close_column:
                     data = data.rename(columns={date_column: "ds", close_column: "y"})
@@ -63,6 +65,7 @@ def main():
                     
                     # Save to session_state
                     st.session_state['raw_data'] = data
+                    st.session_state['symbol'] = symbol  # Store the symbol
                 else:
                     st.error("Unable to identify required columns 'Date' and 'Close'.")
             else:

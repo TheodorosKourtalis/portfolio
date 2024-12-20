@@ -3,14 +3,26 @@
 """
 Created on Fri Dec 20 22:20:58 2024
 
-@author: thodoreskourtales
+Author: Theodoros Kourtales
 """
 
 # pages/2_Clean_Data.py
 
 import streamlit as st
 import pandas as pd
-from streamlit_extras.switch_page_button import switch_page  # Import switch_page for navigation
+import importlib  # For dynamic page loading
+
+def load_page(page_name):
+    """
+    Dynamically load the corresponding page module based on the page_name.
+    """
+    try:
+        module = importlib.import_module(f"pages.forecasting_steps.{page_name}")
+        module.main()  # Call the main function in the loaded module (if it exists)
+    except ModuleNotFoundError as e:
+        st.error(f"Module not found: {page_name}. Ensure the file exists in the forecasting_steps directory.")
+    except AttributeError:
+        st.error(f"The module {page_name} does not have a `main` function.")
 
 def clean_data(data):
     try:
@@ -35,6 +47,9 @@ def main():
     
     if 'raw_data' not in st.session_state or 'symbol' not in st.session_state:
         st.warning("No raw data or symbol found. Please complete Step 1: Fetch Raw Data.")
+        st.markdown("### Return to the Previous Step:")
+        if st.button("Go to Step 1: Fetch Raw Data"):
+            load_page("fetch_raw_data")
         return
     
     data = st.session_state['raw_data']
@@ -73,12 +88,13 @@ def main():
     if 'cleaned_data' not in st.session_state:
         st.markdown("### Return to the Previous Step:")
         if st.button("Previous Step: Fetch Raw Data"):
-            switch_page("fetch raw data")
+            load_page("fetch_raw_data")
     
     # Show "Next Step" button only if data is cleaned
     if 'cleaned_data' in st.session_state:
         st.markdown("### Navigate to the Next Step:")
         if st.button("Next Step: Train Prophet Model"):
-            switch_page("train prophet")
+            load_page("train_prophet")
+
 if __name__ == "__main__":
     main()

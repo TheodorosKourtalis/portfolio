@@ -90,21 +90,7 @@ def main():
             else:
                 st.error("Data cleaning failed. Please check the raw data.")
     
-    # Navigation buttons
-    st.markdown("---")
-    
-    # Show "Return to Previous Step" button
-    st.markdown("### Navigate Between Steps:")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Previous Step: Fetch Raw Data"):
-            st.session_state["current_page"] = "fetch_raw_data"
-            st.experimental_rerun()  # Rerun to load the new page
-    
-    with col2:
-        if "cleaned_data" in st.session_state and st.button("Next Step: Train Prophet Model"):
-            st.session_state["current_page"] = "train_prophet"
-            st.experimental_rerun()  # Rerun to load the new page
+
 
 if __name__ == "__main__":
     main()

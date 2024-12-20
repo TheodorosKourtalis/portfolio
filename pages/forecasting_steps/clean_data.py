@@ -43,13 +43,17 @@ def clean_data(data):
         return None
 
 def main():
+    # Set the current page in session_state
+    st.session_state["current_page"] = "clean_data"
+
     st.header("🧹 Step 2: Clean Data")
     
     if 'raw_data' not in st.session_state or 'symbol' not in st.session_state:
         st.warning("No raw data or symbol found. Please complete Step 1: Fetch Raw Data.")
         st.markdown("### Return to the Previous Step:")
         if st.button("Go to Step 1: Fetch Raw Data"):
-            load_page("fetch_raw_data")
+            st.session_state["current_page"] = "fetch_raw_data"
+            st.experimental_rerun()  # Rerun to load the new page
         return
     
     data = st.session_state['raw_data']
@@ -84,17 +88,18 @@ def main():
     # Navigation buttons
     st.markdown("---")
     
-    # Show "Return to Previous Step" button only if the data hasn't been cleaned
-    if 'cleaned_data' not in st.session_state:
-        st.markdown("### Return to the Previous Step:")
+    # Show "Return to Previous Step" button
+    st.markdown("### Navigate Between Steps:")
+    col1, col2 = st.columns(2)
+    with col1:
         if st.button("Previous Step: Fetch Raw Data"):
-            load_page("fetch_raw_data")
+            st.session_state["current_page"] = "fetch_raw_data"
+            st.experimental_rerun()  # Rerun to load the new page
     
-    # Show "Next Step" button only if data is cleaned
-    if 'cleaned_data' in st.session_state:
-        st.markdown("### Navigate to the Next Step:")
-        if st.button("Next Step: Train Prophet Model"):
-            load_page("train_prophet")
+    with col2:
+        if "cleaned_data" in st.session_state and st.button("Next Step: Train Prophet Model"):
+            st.session_state["current_page"] = "train_prophet"
+            st.experimental_rerun()  # Rerun to load the new page
 
 if __name__ == "__main__":
     main()

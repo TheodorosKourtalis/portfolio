@@ -338,9 +338,9 @@ def main():
                 f"""
                 ### 📅 Forecast for {forecast_date.date()}:
                  - **Predicted Price:** ${forecast_value:,.2f}
-                 - **Confidence Interval:** (${forecast_lower:,.2f}, ${forecast_upper:,.2f})
                  - **Difference from Last Historical Day:** ${price_difference:,.2f}  {"(Increase)" if price_difference > 0 else "(Decrease)"}
                  - **Percentage Change:** {percentage_difference:.2f}% {"(Increase)" if price_difference > 0 else "(Decrease)"}
+                 - **Confidence Interval:** (${forecast_lower:,.2f}, ${forecast_upper:,.2f})
                  """
                  )
         else:

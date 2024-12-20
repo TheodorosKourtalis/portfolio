@@ -27,7 +27,8 @@ def main():
         if data is None:
             st.error("Data fetching failed. Check logs.")
             return
-        st.write("Raw Data (before cleaning):", data.head())
+        st.write("Raw Data (before cleaning):")
+        st.write(data.head())
         
         # Provide download link for raw data
         st.download_button(
@@ -43,7 +44,8 @@ def main():
         if data is None or data.empty:
             st.error("Data cleaning failed. Check logs.")
             return
-        st.write("Cleaned Data:", data.head())
+        st.write("Cleaned Data:")
+        st.write(data.head())
         
         # Provide download link for cleaned data
         st.download_button(
@@ -53,6 +55,7 @@ def main():
             mime="text/csv"
         )
 
+# Function to fetch stock data
 def fetch_stock_data(symbol, start_date, end_date):
     try:
         data = yf.download(symbol, start=start_date, end=end_date)
@@ -64,6 +67,7 @@ def fetch_stock_data(symbol, start_date, end_date):
         st.error(f"Error fetching data: {e}")
         return None
 
+# Function to clean data
 def clean_data(data):
     try:
         st.write("Raw data preview:")
@@ -78,11 +82,15 @@ def clean_data(data):
             st.write("Flattened column names:")
             st.write(data.columns)
 
-        # Step 2: Rename columns for standardization
-        data = data.rename(columns={"Date_": "ds", "Close_MSFT": "y"})
-        if "ds" not in data.columns or "y" not in data.columns:
-            st.error("Missing required columns 'ds' or 'y'. Please check your data format.")
+        # Step 2: Identify and rename columns
+        date_column = next((col for col in data.columns if "Date" in col or "date" in col), None)
+        close_column = next((col for col in data.columns if "Close" in col or "close" in col), None)
+
+        if not date_column or not close_column:
+            st.error(f"Unable to identify required columns. Available columns: {data.columns}")
             return None
+
+        data = data.rename(columns={date_column: "ds", close_column: "y"})
 
         # Step 3: Validate column types
         st.write("Validating column types...")
@@ -105,14 +113,7 @@ def clean_data(data):
 
     except Exception as e:
         st.error(f"Error during data cleaning: {e}")
-        st.write("Detailed error context:")
-        st.write(e)
         return None
 
-    except Exception as e:
-        st.error(f"Error during data cleaning: {e}")
-        st.write("Detailed error context:")
-        st.write(e)
-        return None
 if __name__ == "__main__":
     main()

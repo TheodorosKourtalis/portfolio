@@ -389,8 +389,6 @@ def main():
             with col2:
                 plot_percentage_change(forecast, key='daily_pct_change_plot')
             
-            # Additional plots
-            col3 = st.columns(1)
             with col3:
                 plot_percentage_change_weekly(forecast, key='weekly_pct_change_plot')
     

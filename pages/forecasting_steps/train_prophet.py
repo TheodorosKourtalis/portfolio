@@ -86,17 +86,7 @@ def main():
     # Navigation buttons
     st.markdown("---")
     
-    # Show "Return to Previous Step" button only if the model has not been trained
-    if 'prophet_model' not in st.session_state:
-        st.markdown("### Return to the Previous Step:")
-        if st.button("Previous Step: Clean Data"):
-            switch_page("clean data")
-    
-    # Show "Next Step" button only if the model has been trained
-    if 'prophet_model' in st.session_state:
-        st.markdown("### Navigate to the Next Step:")
-        if st.button("Next Step: Forecast "):
-            switch_page("forecast")
+
 
 if __name__ == "__main__":
     main()

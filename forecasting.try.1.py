@@ -66,24 +66,35 @@ def fetch_stock_data(symbol, start_date, end_date):
 
 def clean_data(data):
     try:
-        # Drop the first row if it contains invalid headers
+        # Check if the first row is invalid (contains ticker names)
         if not pd.api.types.is_datetime64_any_dtype(data.iloc[:, 0]):
-            data.columns = data.iloc[0]  # Use the first row as headers
-            data = data[1:]  # Remove the first row from data
+            # Use the first row as column headers and drop it
+            data.columns = data.iloc[0]
+            data = data[1:]
+        
+        # Rename columns to expected Prophet format
         data = data.rename(columns={"Date": "ds", "Close": "y"})
         
-        # Ensure 'ds' and 'y' are present
+        # Ensure 'ds' and 'y' exist in the DataFrame
         if 'ds' not in data.columns or 'y' not in data.columns:
-            st.error("Missing required columns 'ds' and 'y'.")
+            st.error("The data does not contain 'Date' or 'Close' columns.")
             return None
-        
-        # Ensure 'y' is numeric and drop any invalid rows
-        data['y'] = pd.to_numeric(data['y'], errors='coerce')
+
+        # Convert 'ds' to datetime and 'y' to numeric
         data['ds'] = pd.to_datetime(data['ds'], errors='coerce')
-        data = data.dropna(subset=['y', 'ds'])
+        data['y'] = pd.to_numeric(data['y'], errors='coerce')
+
+        # Drop rows with invalid 'ds' or 'y'
+        data = data.dropna(subset=['ds', 'y'])
+        
+        # Log cleaned data info for debugging
+        st.write("Data cleaned successfully!")
+        st.write(data.head())  # Display a preview in the app
+        
         return data
+
     except Exception as e:
-        st.error(f"Error cleaning data: {e}")
+        st.error(f"Error during data cleaning: {e}")
         return None
 
 if __name__ == "__main__":

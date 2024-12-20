@@ -149,9 +149,6 @@ def plot_percentage_change(forecast, last_actual_price):
         # Sort forecast by date to ensure correct order
         forecast_sorted = forecast.sort_values('ds')
         
-        # Exclude forecast start date from percentage change if necessary
-        # Assuming forecast starts the day after the last actual date
-        
         # Separate positive and negative changes for coloring
         colors = ['green' if val >= 0 else 'red' for val in forecast_sorted['pct_change']]
         
@@ -250,16 +247,12 @@ def main():
                 last_actual_date = cleaned_data['ds'].max()
                 last_actual_price = cleaned_data[cleaned_data['ds'] == last_actual_date]['y'].values[0]
                 
-                # Separate forecasted data from historical data
-                forecasted = forecast[forecast['ds'] > last_actual_date].reset_index(drop=True)
-                
                 # Display forecasted value for the selected day
                 if specific_day <= forecast_days:
-                    forecast_row = forecasted.iloc[specific_day - 1]
-                    forecast_date = forecast_row['ds']
-                    forecast_value = forecast_row['yhat']
-                    forecast_lower = forecast_row['yhat_lower']
-                    forecast_upper = forecast_row['yhat_upper']
+                    forecast_date = forecast['ds'].iloc[-forecast_days + specific_day - 1]
+                    forecast_value = forecast['yhat'].iloc[-forecast_days + specific_day - 1]
+                    forecast_lower = forecast['yhat_lower'].iloc[-forecast_days + specific_day - 1]
+                    forecast_upper = forecast['yhat_upper'].iloc[-forecast_days + specific_day - 1]
                     
                     st.markdown(
                         f"""
@@ -272,10 +265,10 @@ def main():
                     st.warning("Selected day exceeds the forecast period.")
                 
                 # Plot Forecast using Plotly
-                plot_forecast_streamlit(cleaned_data, forecasted, symbol)
+                plot_forecast_streamlit(cleaned_data, forecast, symbol)
                 
                 # Plot Percentage Change
-                plot_percentage_change(forecasted, last_actual_price)
+                plot_percentage_change(forecast, last_actual_price)
             else:
                 st.error("Forecast generation failed.")
     
@@ -287,21 +280,12 @@ def main():
         last_actual_date = cleaned_data['ds'].max()
         last_actual_price = cleaned_data[cleaned_data['ds'] == last_actual_date]['y'].values[0]
         
-        # Separate forecasted data from historical data
-        forecasted = forecast[forecast['ds'] > last_actual_date].reset_index(drop=True)
-        
-        # Ensure specific_day is within the forecast_days
-        if specific_day > forecast_days:
-            specific_day = forecast_days
-            st.session_state['specific_day'] = specific_day
-        
         # Display forecasted value for the selected day dynamically
         if specific_day <= forecast_days:
-            forecast_row = forecasted.iloc[specific_day - 1]
-            forecast_date = forecast_row['ds']
-            forecast_value = forecast_row['yhat']
-            forecast_lower = forecast_row['yhat_lower']
-            forecast_upper = forecast_row['yhat_upper']
+            forecast_date = forecast['ds'].iloc[-forecast_days + specific_day - 1]
+            forecast_value = forecast['yhat'].iloc[-forecast_days + specific_day - 1]
+            forecast_lower = forecast['yhat_lower'].iloc[-forecast_days + specific_day - 1]
+            forecast_upper = forecast['yhat_upper'].iloc[-forecast_days + specific_day - 1]
             
             st.markdown(
                 f"""
@@ -314,10 +298,10 @@ def main():
             st.warning("Selected day exceeds the forecast period.")
         
         # Plot Forecast using Plotly
-        plot_forecast_streamlit(cleaned_data, forecasted, symbol)
+        plot_forecast_streamlit(cleaned_data, forecast, symbol)
         
         # Plot Percentage Change
-        plot_percentage_change(forecasted, last_actual_price)
+        plot_percentage_change(forecast, last_actual_price)
     
     # Navigation buttons
     st.markdown("---")

@@ -39,7 +39,7 @@ def forecast_prices(model, periods):
         st.error(f"Error during price forecasting: {e}")
         return None
 
-def plot_forecast_streamlit(data, forecast, symbol):
+def plot_forecast_streamlit(data, forecast, symbol, key='forecast_plot'):
     """
     Plot the historical and forecasted stock prices using Plotly.
     
@@ -47,6 +47,7 @@ def plot_forecast_streamlit(data, forecast, symbol):
         data (pd.DataFrame): Historical stock data.
         forecast (pd.DataFrame): Forecasted stock data.
         symbol (str): Stock symbol.
+        key (str): Unique key for the plotly_chart.
     """
     try:
         fig = go.Figure()
@@ -126,16 +127,17 @@ def plot_forecast_streamlit(data, forecast, symbol):
             height=500
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, key=key)
     except Exception as e:
         st.error(f"Error plotting forecast for {symbol}: {e}")
 
-def plot_percentage_change(forecast):
+def plot_percentage_change(forecast, key='daily_pct_change_plot'):
     """
     Plot the daily percentage change between consecutive forecasted prices.
     
     Parameters:
         forecast (pd.DataFrame): Forecasted stock data.
+        key (str): Unique key for the plotly_chart.
     """
     try:
         # Create a copy to avoid modifying the original DataFrame
@@ -171,16 +173,17 @@ def plot_percentage_change(forecast):
             height=500
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, key=key)
     except Exception as e:
         st.error(f"Error plotting daily percentage change: {e}")
 
-def plot_percentage_change_weekly(forecast):
+def plot_percentage_change_weekly(forecast, key='weekly_pct_change_plot'):
     """
     Plot the weekly percentage change between consecutive forecasted prices.
     
     Parameters:
         forecast (pd.DataFrame): Forecasted stock data.
+        key (str): Unique key for the plotly_chart.
     """
     try:
         # Create a copy to avoid modifying the original DataFrame
@@ -222,16 +225,17 @@ def plot_percentage_change_weekly(forecast):
             height=500
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, key=key)
     except Exception as e:
         st.error(f"Error plotting weekly percentage change: {e}")
 
-def plot_cumulative_forecast(forecast):
+def plot_cumulative_forecast(forecast, key='cumulative_forecast_plot'):
     """
     Plot the cumulative forecasted stock prices over time.
     
     Parameters:
         forecast (pd.DataFrame): Forecasted stock data.
+        key (str): Unique key for the plotly_chart.
     """
     try:
         # Create a copy to avoid modifying the original DataFrame
@@ -262,7 +266,7 @@ def plot_cumulative_forecast(forecast):
             height=500
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, key=key)
     except Exception as e:
         st.error(f"Error plotting cumulative forecast: {e}")
 
@@ -350,22 +354,7 @@ def main():
                 else:
                     st.warning("Selected day exceeds the forecast period.")
                 
-                # Display all plots
-                with st.container():
-                    st.subheader("📊 Forecast Plots")
-                    # Organize plots in columns for better layout
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        plot_forecast_streamlit(cleaned_data, forecast, symbol)
-                    with col2:
-                        plot_percentage_change(forecast)
-                    
-                    # Additional plots
-                    col3, col4 = st.columns(2)
-                    with col3:
-                        plot_percentage_change_weekly(forecast)
-                    with col4:
-                        plot_cumulative_forecast(forecast)
+                # Note: Removed plotting function calls from here to prevent duplication
             else:
                 st.error("Forecast generation failed.")
     
@@ -410,16 +399,16 @@ def main():
             # Organize plots in columns for better layout
             col1, col2 = st.columns(2)
             with col1:
-                plot_forecast_streamlit(cleaned_data, forecast, symbol)
+                plot_forecast_streamlit(cleaned_data, forecast, symbol, key='forecast_plot')
             with col2:
-                plot_percentage_change(forecast)
+                plot_percentage_change(forecast, key='daily_pct_change_plot')
             
             # Additional plots
             col3, col4 = st.columns(2)
             with col3:
-                plot_percentage_change_weekly(forecast)
+                plot_percentage_change_weekly(forecast, key='weekly_pct_change_plot')
             with col4:
-                plot_cumulative_forecast(forecast)
+                plot_cumulative_forecast(forecast, key='cumulative_forecast_plot')
     
     # Navigation buttons
     st.markdown("---")

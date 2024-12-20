@@ -115,14 +115,6 @@ def plot_forecast_streamlit(data, forecast, symbol):
             showlegend=True
         ))
         
-        # Add a vertical dashed line to indicate the transition point
-        fig.add_vline(
-            x=last_historical_date,
-            line=dict(color='black', dash='dash'),
-            annotation_text="Forecast Start",
-            annotation_position="top left"
-        )
-        
         # Update layout for better aesthetics
         fig.update_layout(
             title=f'Forecast for {symbol}',
@@ -139,43 +131,37 @@ def plot_forecast_streamlit(data, forecast, symbol):
     except Exception as e:
         st.error(f"Error plotting forecast for {symbol}: {e}")
 
-def plot_percentage_change(forecast, last_actual_price):
+def plot_percentage_change(forecast):
     """
-    Plot the percentage change between forecasted prices and the last actual price.
+    Plot the percentage change between consecutive forecasted prices.
     
     Parameters:
         forecast (pd.DataFrame): Forecasted stock data.
-        last_actual_price (float): The last actual stock price.
     """
     try:
-        # Calculate percentage change compared to the last actual price
-        forecast['pct_change'] = ((forecast['yhat'] - last_actual_price) / last_actual_price) * 100
-        
         # Sort forecast by date to ensure correct order
         forecast_sorted = forecast.sort_values('ds')
         
+        # Calculate percentage change between consecutive forecasted days
+        forecast_sorted['pct_change'] = forecast_sorted['yhat'].pct_change() * 100
+        
+        # Drop the first row which will have NaN percentage change
+        pct_change_data = forecast_sorted.dropna(subset=['pct_change'])
+        
         # Separate positive and negative changes for coloring
-        colors = ['green' if val >= 0 else 'red' for val in forecast_sorted['pct_change']]
+        colors = ['green' if val >= 0 else 'red' for val in pct_change_data['pct_change']]
         
         fig = go.Figure()
         
         fig.add_trace(go.Bar(
-            x=forecast_sorted['ds'],
-            y=forecast_sorted['pct_change'],
+            x=pct_change_data['ds'],
+            y=pct_change_data['pct_change'],
             name='Percentage Change',
             marker_color=colors
         ))
         
-        # Add a vertical dashed line to indicate the transition point
-        fig.add_vline(
-            x=forecast_sorted['ds'].min(),
-            line=dict(color='black', dash='dash'),
-            annotation_text="Forecast Start",
-            annotation_position="top left"
-        )
-        
         fig.update_layout(
-            title='Percentage Change from Last Actual Price',
+            title='Daily Percentage Change in Forecasted Prices',
             xaxis_title='Date',
             yaxis_title='Percentage Change (%)',
             template='plotly_white',
@@ -253,20 +239,12 @@ def main():
                 # Store forecast in session_state for dynamic slider
                 st.session_state['forecast'] = forecast
                 
-                # Get the last actual price
-                last_actual_date = cleaned_data['ds'].max()
-                last_actual_price = cleaned_data[cleaned_data['ds'] == last_actual_date]['y'].values[0]
-                
-                # Separate forecasted data from historical data
-                forecasted = forecast[forecast['ds'] > last_actual_date].reset_index(drop=True)
-                
                 # Display forecasted value for the selected day
                 if specific_day <= forecast_days:
-                    forecast_row = forecasted.iloc[specific_day - 1]
-                    forecast_date = forecast_row['ds']
-                    forecast_value = forecast_row['yhat']
-                    forecast_lower = forecast_row['yhat_lower']
-                    forecast_upper = forecast_row['yhat_upper']
+                    forecast_date = forecast['ds'].iloc[-forecast_days + specific_day - 1]
+                    forecast_value = forecast['yhat'].iloc[-forecast_days + specific_day - 1]
+                    forecast_lower = forecast['yhat_lower'].iloc[-forecast_days + specific_day - 1]
+                    forecast_upper = forecast['yhat_upper'].iloc[-forecast_days + specific_day - 1]
                     
                     st.markdown(
                         f"""
@@ -279,10 +257,10 @@ def main():
                     st.warning("Selected day exceeds the forecast period.")
                 
                 # Plot Forecast using Plotly
-                plot_forecast_streamlit(cleaned_data, forecasted, symbol)
+                plot_forecast_streamlit(cleaned_data, forecast, symbol)
                 
                 # Plot Percentage Change
-                plot_percentage_change(forecasted, last_actual_price)
+                plot_percentage_change(forecast)
             else:
                 st.error("Forecast generation failed.")
     
@@ -290,25 +268,12 @@ def main():
     if 'forecast' in st.session_state:
         forecast = st.session_state['forecast']
         
-        # Get the last actual price
-        last_actual_date = cleaned_data['ds'].max()
-        last_actual_price = cleaned_data[cleaned_data['ds'] == last_actual_date]['y'].values[0]
-        
-        # Separate forecasted data from historical data
-        forecasted = forecast[forecast['ds'] > last_actual_date].reset_index(drop=True)
-        
-        # Ensure specific_day is within the forecast_days
-        if specific_day > forecast_days:
-            specific_day = forecast_days
-            st.session_state['specific_day'] = specific_day
-        
         # Display forecasted value for the selected day dynamically
         if specific_day <= forecast_days:
-            forecast_row = forecasted.iloc[specific_day - 1]
-            forecast_date = forecast_row['ds']
-            forecast_value = forecast_row['yhat']
-            forecast_lower = forecast_row['yhat_lower']
-            forecast_upper = forecast_row['yhat_upper']
+            forecast_date = forecast['ds'].iloc[-forecast_days + specific_day - 1]
+            forecast_value = forecast['yhat'].iloc[-forecast_days + specific_day - 1]
+            forecast_lower = forecast['yhat_lower'].iloc[-forecast_days + specific_day - 1]
+            forecast_upper = forecast['yhat_upper'].iloc[-forecast_days + specific_day - 1]
             
             st.markdown(
                 f"""
@@ -321,10 +286,10 @@ def main():
             st.warning("Selected day exceeds the forecast period.")
         
         # Plot Forecast using Plotly
-        plot_forecast_streamlit(cleaned_data, forecasted, symbol)
+        plot_forecast_streamlit(cleaned_data, forecast, symbol)
         
         # Plot Percentage Change
-        plot_percentage_change(forecasted, last_actual_price)
+        plot_percentage_change(forecast)
     
     # Navigation buttons
     st.markdown("---")

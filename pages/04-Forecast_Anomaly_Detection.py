@@ -129,9 +129,13 @@ def main():
     
     forecast_days = st.number_input("Number of days to forecast", min_value=1, max_value=365, value=30)
     
-    # Enhanced Decorative Arrows
+    # Nice looking pointer
     st.markdown(
-        """<hr style="height:2px; border:none; background:linear-gradient(to right, #ff7e5f, #feb47b); margin: 10px 0;">""",
+        """
+        <div style="text-align:center; font-size: 20px; margin: 20px 0;">
+            <span style="color: #555; font-weight: bold;">👇 Scroll Down for the Forecast 👇</span>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
     
@@ -143,9 +147,13 @@ def main():
             if forecast is not None:
                 st.success("Forecast generated successfully!")
                 
-                # Enhanced Decorative Divider
+                # Nice looking pointer after success
                 st.markdown(
-                    """<hr style="height:2px; border:none; background:linear-gradient(to right, #6a11cb, #2575fc); margin: 10px 0;">""",
+                    """
+                    <div style="text-align:center; font-size: 20px; margin: 20px 0;">
+                        <span style="color: #0078FF; font-weight: bold;">📊 Scroll Down for Results 📊</span>
+                    </div>
+                    """,
                     unsafe_allow_html=True,
                 )
                 

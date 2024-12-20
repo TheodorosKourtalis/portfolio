@@ -7,6 +7,7 @@ Created on Fri Dec 20 22:19:58 2024
 """
 
 import streamlit as st
+from streamlit_extras.switch_page_button import switch_page
 
 def main():
     st.title("📊 Stock Forecasting Application")
@@ -21,10 +22,10 @@ def main():
     
     **Navigate to the Forecasting Script to begin the process.**
     """)
-    
+
     # Navigation button
     if st.button("Go to Forecasting Script"):
-        st.query_params.update({"page": "Forecasting_Script"})
+        switch_page("Forecasting_Script")
 
 if __name__ == "__main__":
     main()

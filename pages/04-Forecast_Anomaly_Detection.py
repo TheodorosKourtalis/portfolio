@@ -404,7 +404,7 @@ def main():
                 plot_percentage_change(forecast, key='daily_pct_change_plot')
             
             # Additional plots
-            col3, col4 = st.columns(1)
+            col3 = st.columns(1)
             with col3:
                 # Plot Percentage Change
                 plot_percentage_change(forecast, key='daily_pct_change_plot')

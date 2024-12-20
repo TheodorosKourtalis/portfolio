@@ -66,30 +66,25 @@ def fetch_stock_data(symbol, start_date, end_date):
 
 def clean_data(data):
     try:
-        # Display raw data
         st.write("Raw data preview:")
         st.write(data.head())
-        st.write("Raw data column names:", list(data.columns))
+        st.write("Raw data column names:")
+        st.write(data.columns)
 
-        # Step 1: Adjust for misaligned headers
-        if not pd.api.types.is_datetime64_any_dtype(data.iloc[:, 0]):
-            st.warning("Detected possible extra header row. Adjusting headers...")
-            data.columns = data.iloc[0]  # Set second row as header
-            data = data[1:]  # Drop the first row
-            st.write("Adjusted headers preview:")
-            st.write(data.head())
+        # Step 1: Flatten multi-level header
+        if isinstance(data.columns, pd.MultiIndex):
+            st.warning("Detected multi-level header. Flattening...")
+            data.columns = ['_'.join(filter(None, map(str, col))) for col in data.columns]
+            st.write("Flattened column names:")
+            st.write(data.columns)
 
-        # Step 2: Reset index
-        data = data.reset_index(drop=True)
-
-        # Step 3: Rename columns for standardization
-        if "Date" in data.columns and "Close" in data.columns:
-            data = data.rename(columns={"Date": "ds", "Close": "y"})
-        else:
-            st.error("Missing required columns 'Date' or 'Close'. Please check your data format.")
+        # Step 2: Rename columns for standardization
+        data = data.rename(columns={"Date_": "ds", "Close_MSFT": "y"})
+        if "ds" not in data.columns or "y" not in data.columns:
+            st.error("Missing required columns 'ds' or 'y'. Please check your data format.")
             return None
 
-        # Step 4: Validate column types
+        # Step 3: Validate column types
         st.write("Validating column types...")
         st.write("Column types before conversion:", data.dtypes)
 
@@ -97,20 +92,22 @@ def clean_data(data):
         data['ds'] = pd.to_datetime(data['ds'], errors='coerce')
         data['y'] = pd.to_numeric(data['y'], errors='coerce')
 
-        # Step 5: Drop rows with NaN in critical columns
-        if 'ds' not in data or 'y' not in data:
-            st.error("Critical columns are missing after processing. Exiting.")
-            return None
-
+        # Step 4: Drop rows with NaN in critical columns
         data = data.dropna(subset=['ds', 'y'])
         st.write("Data after cleaning:")
         st.write(data.head())
 
-        # Step 6: Debugging final data
+        # Step 5: Final validation
         st.write("Final cleaned data types:")
         st.write(data.dtypes)
 
         return data
+
+    except Exception as e:
+        st.error(f"Error during data cleaning: {e}")
+        st.write("Detailed error context:")
+        st.write(e)
+        return None
 
     except Exception as e:
         st.error(f"Error during data cleaning: {e}")

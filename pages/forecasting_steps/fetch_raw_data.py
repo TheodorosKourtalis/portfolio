@@ -3,7 +3,7 @@
 """
 Created on Fri Dec 20 22:20:28 2024
 
-@author: thodoreskourtales
+Author: Theodoros Kourtales
 """
 
 # pages/1_Fetch_Raw_Data.py
@@ -12,9 +12,24 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 from datetime import datetime
-from streamlit_extras.switch_page_button import switch_page  # Import switch_page for navigation
+import importlib  # For dynamic page loading
+
+def load_page(page_name):
+    """
+    Dynamically load the corresponding page module based on the page_name.
+    """
+    try:
+        module = importlib.import_module(f"pages.forecasting_steps.{page_name}")
+        module.main()  # Call the main function in the loaded module (if it exists)
+    except ModuleNotFoundError as e:
+        st.error(f"Module not found: {page_name}. Ensure the file exists in the forecasting_steps directory.")
+    except AttributeError:
+        st.error(f"The module {page_name} does not have a `main` function.")
 
 def fetch_stock_data(symbol, start_date, end_date):
+    """
+    Fetch stock data from Yahoo Finance.
+    """
     try:
         data = yf.download(symbol, start=start_date, end=end_date)
         if data.empty:
@@ -71,10 +86,10 @@ def main():
             else:
                 st.error("Failed to fetch data. Please check the stock symbol and date range.")
 
-    # Add a "Next Step" button
+    # Add a "Next Step" button if data is fetched and stored
     if st.session_state.get('raw_data') is not None:
         if st.button("Next Step: Clean Data"):
-            switch_page("clean data")  # Navigate to the next page
+            load_page("clean_data")  # Navigate to the next page dynamically
 
 if __name__ == "__main__":
     main()

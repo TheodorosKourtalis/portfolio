@@ -95,7 +95,7 @@ def main():
     # Show "Next Step" button only if the model has been trained
     if 'prophet_model' in st.session_state:
         st.markdown("### Navigate to the Next Step:")
-        if st.button("Next Step: Forecast and Anomaly Detection"):
+        if st.button("Next Step: Forecast "):
             switch_page("forecast")
 
 if __name__ == "__main__":

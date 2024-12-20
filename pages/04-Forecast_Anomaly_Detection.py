@@ -99,7 +99,7 @@ def plot_forecast_streamlit(data, forecast, symbol):
             y=[last_historical_price],
             mode='markers',
             name='Last Historical Day',
-            marker=dict(color='green', size=10, symbol='circle'),
+            marker=dict(color='green', size=12, symbol='circle'),
             showlegend=True
         ))
         
@@ -111,7 +111,7 @@ def plot_forecast_streamlit(data, forecast, symbol):
             y=[last_forecast_price],
             mode='markers',
             name='End of Forecast',
-            marker=dict(color='purple', size=10, symbol='triangle-up'),
+            marker=dict(color='purple', size=12, symbol='triangle-up'),
             showlegend=True
         ))
         
@@ -119,7 +119,7 @@ def plot_forecast_streamlit(data, forecast, symbol):
         fig.update_layout(
             title=f'Forecast for {symbol}',
             xaxis_title='Date',
-            yaxis_title='Price',
+            yaxis_title='Price ($)',
             legend=dict(x=0, y=1),
             hovermode='x unified',
             template='plotly_white',
@@ -131,23 +131,25 @@ def plot_forecast_streamlit(data, forecast, symbol):
     except Exception as e:
         st.error(f"Error plotting forecast for {symbol}: {e}")
 
-def plot_percentage_change(cleaned_data, forecast):
+def plot_percentage_change(forecast):
     """
-    Plot the percentage change between historical and forecasted prices.
+    Plot the percentage change between consecutive forecasted prices.
     
     Parameters:
-        cleaned_data (pd.DataFrame): Cleaned historical stock data.
         forecast (pd.DataFrame): Forecasted stock data.
     """
     try:
-        # Merge historical data with forecast to get 'y' values aligned with 'ds'
-        merged = pd.merge(cleaned_data, forecast[['ds', 'yhat']], on='ds', how='left')
+        # Sort forecast by date to ensure correct order
+        forecast_sorted = forecast.sort_values('ds')
         
-        # Calculate percentage change where 'y' exists
-        merged['pct_change'] = ((merged['yhat'] - merged['y']) / merged['y']) * 100
+        # Calculate percentage change between consecutive forecasted days
+        forecast_sorted['pct_change'] = forecast_sorted['yhat'].pct_change() * 100
         
-        # Drop rows where 'y' is NaN (future forecasts)
-        pct_change_data = merged.dropna(subset=['y'])
+        # Drop the first row which will have NaN percentage change
+        pct_change_data = forecast_sorted.dropna(subset=['pct_change'])
+        
+        # Separate positive and negative changes for coloring
+        colors = ['green' if val >= 0 else 'red' for val in pct_change_data['pct_change']]
         
         fig = go.Figure()
         
@@ -155,11 +157,11 @@ def plot_percentage_change(cleaned_data, forecast):
             x=pct_change_data['ds'],
             y=pct_change_data['pct_change'],
             name='Percentage Change',
-            marker_color='orange'
+            marker_color=colors
         ))
         
         fig.update_layout(
-            title='Percentage Change from Historical to Forecasted Prices',
+            title='Daily Percentage Change in Forecasted Prices',
             xaxis_title='Date',
             yaxis_title='Percentage Change (%)',
             template='plotly_white',
@@ -191,7 +193,7 @@ def main():
     st.subheader(f"Generating Forecast for {symbol}")
     
     # Number of days to forecast
-    forecast_days = st.number_input("Number of days to forecast", min_value=1, max_value=365, value=30)
+    forecast_days = st.number_input("Number of days to forecast", min_value=1, max_value=365, value=30, step=1)
     
     # Select specific day within the forecast period
     specific_day = st.slider(
@@ -258,7 +260,7 @@ def main():
                 plot_forecast_streamlit(cleaned_data, forecast, symbol)
                 
                 # Plot Percentage Change
-                plot_percentage_change(cleaned_data, forecast)
+                plot_percentage_change(forecast)
             else:
                 st.error("Forecast generation failed.")
     
@@ -295,7 +297,7 @@ def main():
         plot_forecast_streamlit(cleaned_data, forecast, symbol)
         
         # Plot Percentage Change
-        plot_percentage_change(cleaned_data, forecast)
+        plot_percentage_change(forecast)
     
     # Navigation buttons
     st.markdown("---")

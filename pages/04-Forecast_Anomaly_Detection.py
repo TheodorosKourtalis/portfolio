@@ -264,33 +264,41 @@ def main():
             else:
                 st.error("Forecast generation failed.")
     
-    # If forecast is already generated, display the slider and related information dynamically
-    if 'forecast' in st.session_state:
-        forecast = st.session_state['forecast']
-        
-        # Display forecasted value for the selected day dynamically
-        if specific_day <= forecast_days:
-            forecast_date = forecast['ds'].iloc[-forecast_days + specific_day - 1]
-            forecast_value = forecast['yhat'].iloc[-forecast_days + specific_day - 1]
-            forecast_lower = forecast['yhat_lower'].iloc[-forecast_days + specific_day - 1]
-            forecast_upper = forecast['yhat_upper'].iloc[-forecast_days + specific_day - 1]
-            
-            st.markdown(
-                f"""
-                ### 📅 Forecast for {forecast_date.date()}:
-                - **Predicted Price:** ${forecast_value:,.2f}
-                - **Confidence Interval:** (${forecast_lower:,.2f}, ${forecast_upper:,.2f})
-                """
-            )
-        else:
-            st.warning("Selected day exceeds the forecast period.")
-        
-        # Plot Forecast using Plotly
-        plot_forecast_streamlit(cleaned_data, forecast, symbol)
-        
-        # Plot Percentage Change
-        plot_percentage_change(forecast)
+ # If forecast is already generated, display the slider and related information dynamically
+if 'forecast' in st.session_state:
+    forecast = st.session_state['forecast']
     
+    # Get the last actual date from the cleaned data
+    last_actual_date = cleaned_data['ds'].max()
+    
+    # Separate forecasted data from historical data
+    forecasted = forecast[forecast['ds'] > last_actual_date].reset_index(drop=True)
+    
+    # Check if the selected day is within the forecast period
+    if specific_day <= forecast_days and specific_day <= len(forecasted):
+        # Access the specific forecasted day using integer-based indexing
+        forecast_row = forecasted.iloc[specific_day - 1]
+        forecast_date = forecast_row['ds']
+        forecast_value = forecast_row['yhat']
+        forecast_lower = forecast_row['yhat_lower']
+        forecast_upper = forecast_row['yhat_upper']
+        
+        # Display the forecasted value and confidence interval
+        st.markdown(
+            f"""
+            ### 📅 Forecast for {forecast_date.date()}:
+            - **Predicted Price:** ${forecast_value:,.2f}
+            - **Confidence Interval:** (${forecast_lower:,.2f}, ${forecast_upper:,.2f})
+            """
+        )
+    else:
+        st.warning("Selected day exceeds the forecast period.")
+    
+    # Plot Forecast using Plotly
+    plot_forecast_streamlit(cleaned_data, forecasted, symbol)
+    
+    # Plot Percentage Change
+    plot_percentage_change(forecasted)
     # Navigation buttons
     st.markdown("---")
     

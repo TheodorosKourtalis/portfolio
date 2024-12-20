@@ -70,7 +70,7 @@ def main():
                     st.error("Unable to identify required columns 'Date' and 'Close'.")
             else:
                 st.error("Failed to fetch data. Please check the stock symbol and date range.")
-st.markdown("---")
+    st.markdown("---")
     st.markdown("### Select a Step to Proceed:")
     
     # Navigation Buttons with Correct Page Titles

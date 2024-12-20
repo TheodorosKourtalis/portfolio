@@ -66,20 +66,19 @@ def main():
             else:
                 st.error("Data cleaning failed. Please check the raw data.")
     
-    # Add navigation buttons for next and previous steps
+    # Navigation buttons
     st.markdown("---")
-    st.markdown("### Navigate to the Next Step:")
     
+    # Show "Return to Previous Step" button only if the data hasn't been cleaned
+    if 'cleaned_data' not in st.session_state:
+        st.markdown("### Return to the Previous Step:")
+        if st.button("Previous Step: Fetch Raw Data"):
+            switch_page("fetch raw data")
+    
+    # Show "Next Step" button only if data is cleaned
     if 'cleaned_data' in st.session_state:
+        st.markdown("### Navigate to the Next Step:")
         if st.button("Next Step: Train Prophet Model"):
             switch_page("train prophet")
-    else:
-        st.warning("Please clean the data before proceeding to the next step.")
-    
-    st.markdown("---")
-    st.markdown("### Return to the Previous Step:")
-    if st.button("Previous Step: Fetch Raw Data"):
-        switch_page("fetch raw data")
-
 if __name__ == "__main__":
     main()

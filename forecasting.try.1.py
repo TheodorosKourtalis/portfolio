@@ -178,9 +178,28 @@ def fetch_stock_data(symbol, start_date, end_date):
 
 def preprocess_data(data):
     logging.info("Preprocessing data...")
+    # Ensure 'Date' and 'Close' columns exist
+    if 'Date' not in data.columns or 'Close' not in data.columns:
+        logging.error("Data does not contain required 'Date' or 'Close' columns.")
+        return None
+    
     data = data.rename(columns={'Date': 'ds', 'Close': 'y'})
-    data['y'] = data['y'].replace(0, method='ffill')
-    data = data.dropna()
+    
+    # Replace zeros in 'y' with forward fill
+    # Note: 'method' parameter in replace is deprecated; use fillna instead
+    data['y'] = data['y'].replace(0, np.nan).fillna(method='ffill')
+    
+    # Drop any remaining NaN values
+    data = data.dropna(subset=['y', 'ds'])
+    
+    # Ensure 'y' is of numeric type
+    data['y'] = pd.to_numeric(data['y'], errors='coerce')
+    data = data.dropna(subset=['y'])
+    
+    # Debugging: Log the first few rows and data types
+    logging.info(f"Preprocessed data head:\n{data.head()}")
+    logging.info(f"Data types:\n{data.dtypes}")
+    
     logging.info("Data preprocessing complete.")
     return data
 

@@ -70,8 +70,7 @@ def main():
     if st.button("Step 1: Fetch Raw Data"):
         switch_page("fetch raw data")
     
-    if st.button("Step 2: Clean Data"):
-        switch_page("clean data")
+  
     
     if st.button("Step 3: Train Prophet Model"):
         switch_page("train prophet")

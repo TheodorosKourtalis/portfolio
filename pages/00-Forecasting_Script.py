@@ -31,7 +31,7 @@ def main():
     # Load the corresponding page
     if "current_page" in st.session_state:
         if st.session_state["current_page"] == "fetch_raw_data":
-            import pages.forecasting_steps.01_Fetch_Raw_Data
+            import pages.forecasting_steps._Fetch_Raw_Data
         elif st.session_state["current_page"] == "clean_data":
             import pages.forecasting_steps.02_Clean_Data
         elif st.session_state["current_page"] == "train_prophet":

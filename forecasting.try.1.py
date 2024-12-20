@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 # Test Script
 def main():
-    st.title("🔍 Minimal Testing Script")
+    st.title("🔍 Minimal Testing Script with Downloadable File")
     
     # Sidebar for inputs
     symbol = st.sidebar.text_input("Enter stock symbol", "AAPL")
@@ -44,6 +44,14 @@ def main():
         st.write(data.head())
         st.success("Data preprocessing passed.")
         
+        # Provide download link for preprocessed data
+        st.download_button(
+            label="Download Preprocessed Data",
+            data=data.to_csv(index=False),
+            file_name=f"{symbol}_preprocessed_data.csv",
+            mime="text/csv"
+        )
+        
         # Step 3: Test Prophet Model
         st.subheader("Step 3: Train Prophet Model")
         model, holidays = train_prophet_model(data)
@@ -60,6 +68,14 @@ def main():
             return
         st.write(forecast.head())
         st.success("Forecasting passed.")
+        
+        # Provide download link for forecast data
+        st.download_button(
+            label="Download Forecast Data",
+            data=forecast.to_csv(index=False),
+            file_name=f"{symbol}_forecast_data.csv",
+            mime="text/csv"
+        )
 
 def fetch_stock_data(symbol, start_date, end_date):
     logging.info(f"Fetching data for {symbol} from {start_date} to {end_date}")

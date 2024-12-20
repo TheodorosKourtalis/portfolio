@@ -33,20 +33,18 @@ def clean_data(data):
 def main():
     st.header("🧹 Step 2: Clean Data")
     
-    # Check if raw data and symbol exist
     if 'raw_data' not in st.session_state or 'symbol' not in st.session_state:
         st.warning("No raw data or symbol found. Please complete Step 1: Fetch Raw Data.")
         return
     
-    # Display raw data preview
     data = st.session_state['raw_data']
     symbol = st.session_state['symbol']
     
     st.write("**Data Before Cleaning:**")
     st.dataframe(data.head())
     
-    # Cleaning data
     clean_button = st.button("Clean Data")
+    
     if clean_button:
         with st.spinner("Cleaning data..."):
             cleaned_data = clean_data(data)
@@ -58,7 +56,7 @@ def main():
                 # Save cleaned data to session_state
                 st.session_state['cleaned_data'] = cleaned_data
                 
-                # Allow data download
+                # Download Cleaned Data
                 st.download_button(
                     label="Download Cleaned Data",
                     data=cleaned_data.to_csv(index=False).encode('utf-8'),
@@ -68,7 +66,20 @@ def main():
             else:
                 st.error("Data cleaning failed. Please check the raw data.")
     
-    # Navigation buttons
+    # Add navigation buttons for next and previous steps
     st.markdown("---")
+    st.markdown("### Navigate to the Next Step:")
     
-    # Show "Return to Previous Step" button only if the data hasn't been cleaned
+    if 'cleaned_data' in st.session_state:
+        if st.button("Next Step: Train Prophet Model"):
+            switch_page("train prophet")
+    else:
+        st.warning("Please clean the data before proceeding to the next step.")
+    
+    st.markdown("---")
+    st.markdown("### Return to the Previous Step:")
+    if st.button("Previous Step: Fetch Raw Data"):
+        switch_page("fetch raw data")
+
+if __name__ == "__main__":
+    main()

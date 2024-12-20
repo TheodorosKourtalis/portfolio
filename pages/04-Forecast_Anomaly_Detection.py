@@ -336,13 +336,7 @@ def main():
                     forecast_lower = forecast['yhat_lower'].iloc[-forecast_days + specific_day - 1]
                     forecast_upper = forecast['yhat_upper'].iloc[-forecast_days + specific_day - 1]
                     
-                    st.markdown(
-                        f"""
-                        ### 📅 Forecast for {forecast_date.date()}:
-                        - **Predicted Price:** ${forecast_value:,.2f}
-                        - **Confidence Interval:** (${forecast_lower:,.2f}, ${forecast_upper:,.2f})
-                        """
-                    )
+
                 else:
                     st.warning("Selected day exceeds the forecast period.")
                 
@@ -375,7 +369,15 @@ def main():
             forecast_upper = forecast_row['yhat_upper']
             
             # Display the forecasted value and confidence interval
-
+            st.markdown(
+                f"""
+                ### 📅 Forecast for {forecast_date.date()}:
+                - **Predicted Price:** ${forecast_value:,.2f}
+                - **Confidence Interval:** (${forecast_lower:,.2f}, ${forecast_upper:,.2f})
+                """
+            )
+        else:
+            st.warning("Selected day exceeds the forecast period.")
         
         # Display all plots
         with st.container():

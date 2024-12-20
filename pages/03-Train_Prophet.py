@@ -96,7 +96,7 @@ def main():
     if 'prophet_model' in st.session_state:
         st.markdown("### Navigate to the Next Step:")
         if st.button("Next Step: Forecast and Anomaly Detection"):
-            switch_page("forecast anomaly detection")
+            switch_page("forecast")
 
 if __name__ == "__main__":
     main()

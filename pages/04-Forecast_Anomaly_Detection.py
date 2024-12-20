@@ -367,15 +367,19 @@ def main():
             forecast_value = forecast_row['yhat']
             forecast_lower = forecast_row['yhat_lower']
             forecast_upper = forecast_row['yhat_upper']
-            
             # Display the forecasted value and confidence interval
+            # Calculate the difference between the last historical day's price and the forecasted price
+            last_historical_price = cleaned_data[cleaned_data['ds'] == last_actual_date]['y'].values[0]
+            price_difference = forecast_value - last_historical_price
+           # Add the new difference information to the markdown
             st.markdown(
                 f"""
                 ### 📅 Forecast for {forecast_date.date()}:
-                - **Predicted Price:** ${forecast_value:,.2f}
-                - **Confidence Interval:** (${forecast_lower:,.2f}, ${forecast_upper:,.2f})
-                """
-            )
+                 - **Predicted Price:** ${forecast_value:,.2f}
+                 - **Confidence Interval:** (${forecast_lower:,.2f}, ${forecast_upper:,.2f})
+                 - **Difference from Last Historical Day:** ${price_difference:,.2f} {"(Increase)" if price_difference > 0 else "(Decrease)"}
+                 """
+                 )
         else:
             st.warning("Selected day exceeds the forecast period.")
         

@@ -77,7 +77,7 @@ def main():
         st.warning("Please clean the data before proceeding to the next step.")
         st.markdown("### Return to the Previous Step:")
             if st.button("Previous Step: Fetch Raw Data"):
-                  switch_page("fetch raw data")
+                   switch_page("fetch raw data")
 
 if __name__ == "__main__":
     main()

@@ -129,8 +129,11 @@ def main():
     
     forecast_days = st.number_input("Number of days to forecast", min_value=1, max_value=365, value=30)
     
-    # Decorative Down Arrows
-    st.markdown("⬇️⬇️⬇️")
+    # Enhanced Decorative Arrows
+    st.markdown(
+        """<hr style="height:2px; border:none; background:linear-gradient(to right, #ff7e5f, #feb47b); margin: 10px 0;">""",
+        unsafe_allow_html=True,
+    )
     
     forecast_button = st.button("Generate Forecast")
     
@@ -139,7 +142,13 @@ def main():
             forecast = forecast_prices(model, forecast_days)
             if forecast is not None:
                 st.success("Forecast generated successfully!")
-                st.markdown("⬇️⬇️⬇️")
+                
+                # Enhanced Decorative Divider
+                st.markdown(
+                    """<hr style="height:2px; border:none; background:linear-gradient(to right, #6a11cb, #2575fc); margin: 10px 0;">""",
+                    unsafe_allow_html=True,
+                )
+                
                 st.write("**Forecast Data Preview:**")
                 st.dataframe(forecast.tail())
                 

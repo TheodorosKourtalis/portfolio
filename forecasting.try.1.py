@@ -66,13 +66,16 @@ def fetch_stock_data(symbol, start_date, end_date):
 
 def clean_data(data):
     try:
-        # Check if the first row is invalid (contains ticker names)
+        # Check if the second row should be the header
         if not pd.api.types.is_datetime64_any_dtype(data.iloc[:, 0]):
-            # Use the first row as column headers and drop it
+            # Reassign the second row as header and drop the first row
             data.columns = data.iloc[0]
             data = data[1:]
-        
-        # Rename columns to expected Prophet format
+
+        # Reset the index
+        data = data.reset_index(drop=True)
+
+        # Rename columns to standard names
         data = data.rename(columns={"Date": "ds", "Close": "y"})
         
         # Ensure 'ds' and 'y' exist in the DataFrame
@@ -86,10 +89,10 @@ def clean_data(data):
 
         # Drop rows with invalid 'ds' or 'y'
         data = data.dropna(subset=['ds', 'y'])
-        
-        # Log cleaned data info for debugging
+
+        # Log cleaned data for debugging
         st.write("Data cleaned successfully!")
-        st.write(data.head())  # Display a preview in the app
+        st.write(data.head())  # Display the first few rows in Streamlit
         
         return data
 

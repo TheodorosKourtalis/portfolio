@@ -24,7 +24,7 @@ def main():
     
     # Navigation button
     if st.button("Go to Forecasting Script"):
-         st.query_params(page="Forecasting_Script")
+         st.query_params(page="pages/Forecasting_Script.py")
 
 if __name__ == "__main__":
     main()

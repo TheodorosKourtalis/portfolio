@@ -266,19 +266,15 @@ def main():
     if 'forecast' in st.session_state:
         forecast = st.session_state['forecast']
         
-        st.markdown(
-            """
-            <div style="text-align:center; font-size: 20px; margin: 20px 0;">
-                <span style="color: #555; font-weight: bold;">👇 Scroll Down to View Forecast Details 👇</span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        # Update specific_day slider if forecast_days has changed
+        if 'forecast_days' not in st.session_state or st.session_state['forecast_days'] != forecast_days:
+            st.session_state['forecast_days'] = forecast_days
+            # Reset specific_day to a default value if needed
+            if specific_day > forecast_days:
+                specific_day = forecast_days
+                st.session_state['specific_day'] = specific_day
         
-        st.write("**Forecast Data Preview:**")
-        st.dataframe(forecast.tail())
-        
-        # Display forecasted value for the selected day
+        # Display forecasted value for the selected day dynamically
         if specific_day <= forecast_days:
             forecast_date = forecast['ds'].iloc[-forecast_days + specific_day - 1]
             forecast_value = forecast['yhat'].iloc[-forecast_days + specific_day - 1]

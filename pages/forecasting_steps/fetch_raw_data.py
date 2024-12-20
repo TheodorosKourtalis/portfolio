@@ -86,10 +86,7 @@ def main():
             else:
                 st.error("Failed to fetch data. Please check the stock symbol and date range.")
 
-    # Add a "Next Step" button if data is fetched and stored
-    if st.session_state.get('raw_data') is not None:
-        if st.button("Next Step: Clean Data"):
-            load_page("clean_data")  # Navigate to the next page dynamically
+
 
 if __name__ == "__main__":
     main()

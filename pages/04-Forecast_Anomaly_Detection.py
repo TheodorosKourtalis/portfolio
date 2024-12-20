@@ -107,22 +107,29 @@ def plot_forecast_streamlit(data, forecast, symbol):
     except Exception as e:
         st.error(f"Error plotting forecast for {symbol}: {e}")
 
-def plot_percentage_change(forecast):
+def plot_percentage_change(cleaned_data, forecast):
     """
     Plot the percentage change between historical and forecasted prices.
     
     Parameters:
+        cleaned_data (pd.DataFrame): Cleaned historical stock data.
         forecast (pd.DataFrame): Forecasted stock data.
     """
     try:
-        # Calculate percentage change
-        forecast['pct_change'] = ((forecast['yhat'] - forecast['y']) / forecast['y']) * 100
+        # Merge historical data with forecast to get 'y' values aligned with 'ds'
+        merged = pd.merge(cleaned_data, forecast[['ds', 'yhat']], on='ds', how='left')
+        
+        # Calculate percentage change where 'y' exists
+        merged['pct_change'] = ((merged['yhat'] - merged['y']) / merged['y']) * 100
+        
+        # Drop rows where 'y' is NaN (future forecasts)
+        pct_change_data = merged.dropna(subset=['y'])
         
         fig = go.Figure()
         
         fig.add_trace(go.Bar(
-            x=forecast['ds'],
-            y=forecast['pct_change'],
+            x=pct_change_data['ds'],
+            y=pct_change_data['pct_change'],
             name='Percentage Change',
             marker_color='orange'
         ))
@@ -203,24 +210,27 @@ def main():
                 st.dataframe(forecast.tail())
                 
                 # Display forecasted value for the selected day
-                forecast_date = forecast['ds'].iloc[-forecast_days + specific_day - 1]
-                forecast_value = forecast['yhat'].iloc[-forecast_days + specific_day - 1]
-                forecast_lower = forecast['yhat_lower'].iloc[-forecast_days + specific_day - 1]
-                forecast_upper = forecast['yhat_upper'].iloc[-forecast_days + specific_day - 1]
-                
-                st.markdown(
-                    f"""
-                    ### 📅 Forecast for {forecast_date.date()}:
-                    - **Predicted Price:** ${forecast_value:,.2f}
-                    - **Confidence Interval:** (${forecast_lower:,.2f}, ${forecast_upper:,.2f})
-                    """
-                )
+                if specific_day <= forecast_days:
+                    forecast_date = forecast['ds'].iloc[-forecast_days + specific_day - 1]
+                    forecast_value = forecast['yhat'].iloc[-forecast_days + specific_day - 1]
+                    forecast_lower = forecast['yhat_lower'].iloc[-forecast_days + specific_day - 1]
+                    forecast_upper = forecast['yhat_upper'].iloc[-forecast_days + specific_day - 1]
+                    
+                    st.markdown(
+                        f"""
+                        ### 📅 Forecast for {forecast_date.date()}:
+                        - **Predicted Price:** ${forecast_value:,.2f}
+                        - **Confidence Interval:** (${forecast_lower:,.2f}, ${forecast_upper:,.2f})
+                        """
+                    )
+                else:
+                    st.warning("Selected day exceeds the forecast period.")
                 
                 # Plot Forecast using Plotly
                 plot_forecast_streamlit(cleaned_data, forecast, symbol)
                 
                 # Plot Percentage Change
-                plot_percentage_change(forecast)
+                plot_percentage_change(cleaned_data, forecast)
             else:
                 st.error("Forecast generation failed.")
     
@@ -230,8 +240,8 @@ def main():
     # Show "Next Step" button only if forecast is generated
     if 'prophet_model' in st.session_state and 'cleaned_data' in st.session_state:
         st.markdown("### Navigate to the Next Step:")
-        if st.button("Next Step: Forecast and Anomaly Detection"):
-            switch_page("forecast anomaly detection")
+        if st.button("Next Step: Fetch Raw Data"):
+            switch_page("fetch raw data")  # Redirect to Step 1 since there's no next step yet
     
     # Show "Previous Step" button
     st.markdown("### Return to the Previous Step:")

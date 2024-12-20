@@ -6,7 +6,7 @@ Created on Fri Dec 20 22:19:58 2024
 @author: thodoreskourtales
 """
 
-# main_app.py
+# Main Page
 
 import streamlit as st
 

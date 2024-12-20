@@ -406,9 +406,10 @@ def main():
             # Additional plots
             col3, col4 = st.columns(2)
             with col3:
-                plot_percentage_change_weekly(forecast, key='weekly_pct_change_plot')
+                # Plot Percentage Change
+                plot_percentage_change(forecasted)
             with col4:
-                plot_cumulative_forecast(forecast, key='cumulative_forecast_plot')
+                plot_cumulative_forecast(forecasted)
     
     # Navigation buttons
     st.markdown("---")

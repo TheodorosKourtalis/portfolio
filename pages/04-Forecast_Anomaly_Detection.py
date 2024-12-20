@@ -14,8 +14,6 @@ import numpy as np
 import plotly.graph_objects as go
 from prophet import Prophet
 from datetime import datetime
-from statsmodels.tsa.seasonal import seasonal_decompose
-from scipy.fftpack import fft
 
 def forecast_prices(model, periods):
     """
@@ -117,6 +115,9 @@ def main():
     missing_keys = [key for key in required_keys if key not in st.session_state]
     if missing_keys:
         st.warning(f"Missing data in session state: {', '.join(missing_keys)}. Please complete the previous steps.")
+        if st.button("Go to Step 1: Fetch Raw Data"):
+            from streamlit_extras.switch_page_button import switch_page
+            switch_page("fetch raw data")
         return
     
     model = st.session_state['prophet_model']
@@ -127,6 +128,10 @@ def main():
     st.subheader(f"Generating Forecast for {symbol}")
     
     forecast_days = st.number_input("Number of days to forecast", min_value=1, max_value=365, value=30)
+    
+    # Decorative Down Arrows
+    st.markdown("⬇️⬇️⬇️")
+    
     forecast_button = st.button("Generate Forecast")
     
     if forecast_button:
@@ -134,6 +139,7 @@ def main():
             forecast = forecast_prices(model, forecast_days)
             if forecast is not None:
                 st.success("Forecast generated successfully!")
+                st.markdown("⬇️⬇️⬇️")
                 st.write("**Forecast Data Preview:**")
                 st.dataframe(forecast.tail())
                 

@@ -118,6 +118,9 @@ def main():
 
             # Forecast
             forecast = forecast_prices(model, holidays, periods)
+            if forecast is None:
+                st.error(f"Failed to forecast prices for {symbol}. Skipping...")
+                continue
 
             # Fetch actual data for the forecasted period
             actual_end_date = (end_date + timedelta(days=periods)).strftime('%Y-%m-%d')
@@ -172,11 +175,15 @@ def main():
 def fetch_stock_data(symbol, start_date, end_date):
     logging.info(f"Fetching data for {symbol} from {start_date} to {end_date}")
     try:
-        stock_data = yf.download(symbol, start=start_date, end=end_date)
+        # Convert dates to strings in 'YYYY-MM-DD' format
+        start_str = start_date.strftime('%Y-%m-%d')
+        end_str = end_date.strftime('%Y-%m-%d')
+        stock_data = yf.download(symbol, start=start_str, end=end_str)
         if stock_data.empty:
-            logging.warning(f"No data found for {symbol} between {start_date} and {end_date}.")
+            logging.warning(f"No data found for {symbol} between {start_str} and {end_str}.")
             return None
         logging.info(f"Successfully fetched data for {symbol}")
+        logging.info(f"Data columns fetched: {stock_data.columns.tolist()}")
         return stock_data[['Close']].reset_index()
     except Exception as e:
         logging.error(f"Error fetching data for {symbol}: {e}")
@@ -184,37 +191,48 @@ def fetch_stock_data(symbol, start_date, end_date):
 
 def preprocess_data(data):
     logging.info("Preprocessing data...")
-    # Ensure 'Date' and 'Close' columns exist
-    if 'Date' not in data.columns or 'Close' not in data.columns:
-        logging.error("Data does not contain required 'Date' or 'Close' columns.")
+    logging.info(f"Data columns before renaming: {data.columns.tolist()}")
+
+    # Handle 'Date' or 'Datetime' columns
+    if 'Date' in data.columns:
+        date_col = 'Date'
+    elif 'Datetime' in data.columns:
+        date_col = 'Datetime'
+    else:
+        logging.error("Data does not contain required 'Date' or 'Datetime' columns.")
         return None
-    
-    data = data.rename(columns={'Date': 'ds', 'Close': 'y'})
-    logging.info("Renamed 'Date' to 'ds' and 'Close' to 'y'.")
-    
-    # Replace zeros in 'y' with forward fill
-    # Note: 'method' parameter in replace is deprecated; use .ffill() instead
+
+    # Ensure 'Close' column exists
+    if 'Close' not in data.columns:
+        logging.error("Data does not contain required 'Close' column.")
+        return None
+
+    # Rename columns
+    data = data.rename(columns={date_col: 'ds', 'Close': 'y'})
+    logging.info(f"Renamed '{date_col}' to 'ds' and 'Close' to 'y'.")
+
+    # Replace zeros in 'y' with NaN and forward fill
     data['y'] = data['y'].replace(0, np.nan).ffill()
     logging.info("Replaced zeros in 'y' with NaN and forward filled.")
-    
+
     # Check if 'y' and 'ds' columns are present after renaming
     if 'y' not in data.columns or 'ds' not in data.columns:
         logging.error("'y' or 'ds' columns are missing after renaming.")
         return None
-    
+
     # Drop any remaining NaN values in 'y' and 'ds'
     data = data.dropna(subset=['y', 'ds'])
     logging.info("Dropped rows with NaN in 'y' or 'ds'.")
-    
+
     # Ensure 'y' is of numeric type
     data['y'] = pd.to_numeric(data['y'], errors='coerce')
     data = data.dropna(subset=['y'])
     logging.info("Converted 'y' to numeric and dropped any remaining NaN values.")
-    
+
     # Debugging: Log the first few rows and data types
     logging.info(f"Preprocessed data head:\n{data.head()}")
     logging.info(f"Data types:\n{data.dtypes}")
-    
+
     logging.info("Data preprocessing complete.")
     return data
 
@@ -406,7 +424,10 @@ def plot_differences_streamlit(differences, symbol, last_historical_price):
 def load_stock_data(stock_name, start_date='2020-01-01', end_date=None):
     end_date = end_date or pd.Timestamp.today().strftime('%Y-%m-%d')
     try:
-        stock_data = yf.download(stock_name, start=start_date, end=end_date)
+        # Convert dates to strings in 'YYYY-MM-DD' format
+        start_str = start_date.strftime('%Y-%m-%d')
+        end_str = end_date.strftime('%Y-%m-%d')
+        stock_data = yf.download(stock_name, start=start_str, end=end_str)
         if stock_data.empty:
             logging.warning("No data fetched for the given stock symbol.")
             return pd.DataFrame()

@@ -122,15 +122,15 @@ def plot_forecast_streamlit(data, forecast, symbol):
             legend=dict(x=0, y=1),
             hovermode='x unified',
             template='plotly_white',
-            width=1000,
-            height=600
+            width=800,
+            height=500
         )
         
         st.plotly_chart(fig, use_container_width=True)
     except Exception as e:
         st.error(f"Error plotting forecast for {symbol}: {e}")
 
-def plot_percentage_change_daily(forecast):
+def plot_percentage_change(forecast):
     """
     Plot the daily percentage change between consecutive forecasted prices.
     
@@ -142,19 +142,19 @@ def plot_percentage_change_daily(forecast):
         forecast_sorted = forecast.sort_values('ds')
         
         # Calculate daily percentage change between consecutive forecasted days
-        forecast_sorted['daily_pct_change'] = forecast_sorted['yhat'].pct_change() * 100
+        forecast_sorted['pct_change'] = forecast_sorted['yhat'].pct_change() * 100
         
         # Drop the first row which will have NaN percentage change
-        daily_pct_change_data = forecast_sorted.dropna(subset=['daily_pct_change'])
+        pct_change_data = forecast_sorted.dropna(subset=['pct_change'])
         
         # Separate positive and negative changes for coloring
-        colors = ['green' if val >= 0 else 'red' for val in daily_pct_change_data['daily_pct_change']]
+        colors = ['green' if val >= 0 else 'red' for val in pct_change_data['pct_change']]
         
         fig = go.Figure()
         
         fig.add_trace(go.Bar(
-            x=daily_pct_change_data['ds'],
-            y=daily_pct_change_data['daily_pct_change'],
+            x=pct_change_data['ds'],
+            y=pct_change_data['pct_change'],
             name='Daily Percentage Change',
             marker_color=colors
         ))
@@ -164,13 +164,13 @@ def plot_percentage_change_daily(forecast):
             xaxis_title='Date',
             yaxis_title='Percentage Change (%)',
             template='plotly_white',
-            width=1000,
-            height=400
+            width=800,
+            height=500
         )
         
         st.plotly_chart(fig, use_container_width=True)
     except Exception as e:
-        st.error(f"Error plotting daily percentage change: {e}")
+        st.error(f"Error plotting percentage change: {e}")
 
 def plot_percentage_change_weekly(forecast):
     """
@@ -212,8 +212,8 @@ def plot_percentage_change_weekly(forecast):
             xaxis_title='Date',
             yaxis_title='Percentage Change (%)',
             template='plotly_white',
-            width=1000,
-            height=400
+            width=800,
+            height=500
         )
         
         st.plotly_chart(fig, use_container_width=True)
@@ -228,7 +228,7 @@ def plot_cumulative_forecast(forecast):
         forecast (pd.DataFrame): Forecasted stock data.
     """
     try:
-        forecast_sorted = forecast.sort_values('ds')
+        forecast_sorted = forecast.sort_values('ds').copy()
         forecast_sorted['cumulative_yhat'] = forecast_sorted['yhat'].cumsum()
         
         fig = go.Figure()
@@ -246,8 +246,8 @@ def plot_cumulative_forecast(forecast):
             xaxis_title='Date',
             yaxis_title='Cumulative Price ($)',
             template='plotly_white',
-            width=1000,
-            height=400
+            width=800,
+            height=500
         )
         
         st.plotly_chart(fig, use_container_width=True)
@@ -346,7 +346,7 @@ def main():
                     with col1:
                         plot_forecast_streamlit(cleaned_data, forecast, symbol)
                     with col2:
-                        plot_percentage_change_daily(forecast)
+                        plot_percentage_change(forecast)
                     
                     # Additional plots
                     col3, col4 = st.columns(2)
@@ -395,7 +395,7 @@ def main():
             with col1:
                 plot_forecast_streamlit(cleaned_data, forecast, symbol)
             with col2:
-                plot_percentage_change_daily(forecast)
+                plot_percentage_change(forecast)
             
             # Additional plots
             col3, col4 = st.columns(2)
@@ -407,15 +407,17 @@ def main():
     # Navigation buttons
     st.markdown("---")
     
-    # Since there's no "Next Step," redirect back to "Fetch Raw Data"
+    # Navigation Section
     st.markdown("### Navigate to Other Steps:")
     
-    if st.button("Go to Step 1: Fetch Raw Data"):
-        switch_page("fetch raw data")  # Redirect to Step 1
+    col_nav1, col_nav2 = st.columns(2)
+    with col_nav1:
+        if st.button("Go to Step 1: Fetch Raw Data"):
+            switch_page("fetch raw data")  # Redirect to Step 1
     
-    # Show "Previous Step" button
-    if st.button("Previous Step: Train Prophet Model"):
-        switch_page("train prophet")
+    with col_nav2:
+        if st.button("Previous Step: Train Prophet Model"):
+            switch_page("train prophet")
 
 if __name__ == "__main__":
     main()

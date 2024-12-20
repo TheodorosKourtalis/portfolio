@@ -407,7 +407,7 @@ def main():
             col3 = st.columns(1)
             with col3:
                 # Plot Percentage Change
-                plot_percentage_change(forecast, key='daily_pct_change_plot')
+                 plot_forecast_streamlit(cleaned_data, forecast, symbol, key='forecast_plot')
 
     
     # Navigation buttons

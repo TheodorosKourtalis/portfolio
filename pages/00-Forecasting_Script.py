@@ -34,7 +34,7 @@ def main():
         switch_page("train prophet")
     
     if st.button("Step 4: Forecast and Anomaly Detection"):
-        switch_page("forecast anomaly detection")
+        switch_page("forecast")
 
 if __name__ == "__main__":
     main()

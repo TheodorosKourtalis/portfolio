@@ -388,7 +388,6 @@ def main():
                 plot_forecast_streamlit(cleaned_data, forecast, symbol, key='forecast_plot')
             with col2:
                 plot_percentage_change(forecast, key='daily_pct_change_plot')
-            
             with col3:
                 plot_percentage_change_weekly(forecast, key='weekly_pct_change_plot')
     

@@ -6,10 +6,12 @@ Created on Fri Dec 20 22:22:08 2024
 @author: thodoreskourtales
 """
 
+# pages/4_Forecast_Anomaly_Detection.py
+
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 from prophet import Prophet
 from datetime import datetime
 from statsmodels.tsa.seasonal import seasonal_decompose
@@ -33,23 +35,58 @@ def forecast_prices(model, holidays, periods):
 
 def plot_forecast_streamlit(data, forecast, symbol):
     try:
-        fig, ax = plt.subplots(figsize=(14, 8))
+        fig = go.Figure()
 
         # Plot historical data
-        ax.plot(data['ds'], data['y'], label='Historical Stock Price', color='blue')
+        fig.add_trace(go.Scatter(
+            x=data['ds'],
+            y=data['y'],
+            mode='lines',
+            name='Historical Stock Price',
+            line=dict(color='blue')
+        ))
 
-        # Plot forecast data
+        # Plot forecasted data
         forecast_positive = forecast[forecast['yhat'] > 0]
-        ax.plot(forecast_positive['ds'], forecast_positive['yhat'], label='Forecasted Price', color='red')
-        ax.fill_between(forecast_positive['ds'], forecast_positive['yhat_lower'], forecast_positive['yhat_upper'], color='pink', alpha=0.5)
+        fig.add_trace(go.Scatter(
+            x=forecast_positive['ds'],
+            y=forecast_positive['yhat'],
+            mode='lines',
+            name='Forecasted Price',
+            line=dict(color='red')
+        ))
 
-        ax.set_xlabel('Date')
-        ax.set_ylabel('Price')
-        ax.set_title(f'Forecast for {symbol}')
-        ax.legend()
-        ax.grid(True)
-        st.pyplot(fig)
-        plt.close(fig)
+        # Add uncertainty intervals
+        fig.add_trace(go.Scatter(
+            x=forecast_positive['ds'],
+            y=forecast_positive['yhat_upper'],
+            mode='lines',
+            name='Upper Confidence Interval',
+            line=dict(color='lightcoral'),
+            showlegend=False
+        ))
+        fig.add_trace(go.Scatter(
+            x=forecast_positive['ds'],
+            y=forecast_positive['yhat_lower'],
+            mode='lines',
+            name='Lower Confidence Interval',
+            line=dict(color='lightcoral'),
+            fill='tonexty',
+            fillcolor='rgba(255, 192, 203, 0.2)',
+            showlegend=False
+        ))
+
+        # Update layout
+        fig.update_layout(
+            title=f'Forecast for {symbol}',
+            xaxis_title='Date',
+            yaxis_title='Price',
+            legend=dict(x=0, y=1),
+            hovermode='x unified',
+            template='plotly_white'
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
     except Exception as e:
         st.error(f"Error plotting forecast for {symbol}: {e}")
 
@@ -134,12 +171,14 @@ def train_prophet_model(data):
 def main():
     st.header("🔮 Step 4: Forecast")
 
-    if 'prophet_model' not in st.session_state or 'holidays' not in st.session_state:
-        st.warning("Prophet model not found. Please complete Step 3: Train Prophet Model.")
+    if 'prophet_model' not in st.session_state or 'holidays' not in st.session_state or 'cleaned_data' not in st.session_state or 'symbol' not in st.session_state:
+        st.warning("Prophet model not found. Please complete the previous steps: Train Prophet Model.")
         return
 
     model = st.session_state['prophet_model']
     holidays = st.session_state['holidays']
+    cleaned_data = st.session_state['cleaned_data']
+    symbol = st.session_state['symbol']
 
     forecast_days = st.number_input("Number of days to forecast", min_value=1, max_value=365, value=30)
     forecast_button = st.button("Generate Forecast")
@@ -152,8 +191,8 @@ def main():
                 st.write("**Forecast Data Preview:**")
                 st.dataframe(forecast.tail())
 
-                # Plot Forecast
-                plot_forecast_streamlit(st.session_state['cleaned_data'], forecast, st.session_state.get('symbol', 'Stock'))
+                # Plot Forecast using Plotly
+                plot_forecast_streamlit(cleaned_data, forecast, symbol)
             else:
                 st.error("Forecast generation failed.")
 

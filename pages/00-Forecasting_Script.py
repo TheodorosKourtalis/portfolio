@@ -7,7 +7,7 @@ Created on Fri Dec 20 23:07:02 2024
 """
 
 import streamlit as st
-from streamlit_extras.switch_page_button import switch_page  # Import switch_page for navigation
+from streamlit_extras.switch_page_button import switch_page
 
 def main():
     st.title("📈 Forecasting Workflow")
@@ -23,18 +23,18 @@ def main():
     st.markdown("---")
     st.markdown("### Select a Step to Proceed:")
     
-    # Navigation Buttons
+    # Navigation Buttons with Correct Page Titles
     if st.button("Step 1: Fetch Raw Data"):
-        switch_page("1_Fetch_Raw_Data")
+        switch_page("fetch raw data")
     
     if st.button("Step 2: Clean Data"):
-        switch_page("2_Clean_Data")
+        switch_page("clean data")
     
     if st.button("Step 3: Train Prophet Model"):
-        switch_page("3_Train_Prophet_Model")
+        switch_page("train prophet")
     
-    if st.button("Step 4: Forecast"):
-        switch_page("4_Forecast")
+    if st.button("Step 4: Forecast and Anomaly Detection"):
+        switch_page("forecast anomaly detection")
 
 if __name__ == "__main__":
     main()

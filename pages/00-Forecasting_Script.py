@@ -30,7 +30,7 @@ def main():
     col1, col2 = st.columns(2)
     with col1:
         if st.button("Step 1: Fetch Raw Data"):
-            switch_page("fetch raw data")
+            switch_page("forecasting_steps/01-Fetch_Raw_Data")
         if st.button("Step 3: Train Prophet Model"):
             switch_page("train prophet")
     with col2:

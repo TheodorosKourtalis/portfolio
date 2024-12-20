@@ -1,86 +1,146 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Dec 20 22:21:23 2024
+Created on Fri Dec 20 22:22:08 2024
 
 @author: thodoreskourtales
 """
 
-# pages/3_Train_Prophet_Model.py
+# pages/4_Forecast.py
 
 import streamlit as st
-from prophet import Prophet
 import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+from prophet import Prophet
+from datetime import datetime
+from statsmodels.tsa.seasonal import seasonal_decompose
+from scipy.fftpack import fft
 
-def add_holiday_effects():
+def forecast_prices(model, periods):
     """
-    Define major US holidays to be included in the Prophet model.
-    """
-    holidays = pd.DataFrame({
-        'holiday': ['New Year\'s Day', 'Independence Day', 'Christmas Day'],
-        'ds': pd.to_datetime(['2023-01-01', '2023-07-04', '2023-12-25']),
-        'lower_window': 0,
-        'upper_window': 1,
-    })
-    return holidays
-
-def train_prophet_model(data, holidays):
-    """
-    Train the Prophet model with the provided data and holidays.
+    Generate future forecasts using the trained Prophet model.
     
     Parameters:
-        data (pd.DataFrame): Cleaned stock data with 'ds' and 'y' columns.
-        holidays (pd.DataFrame): DataFrame containing holiday information.
+        model (Prophet): Trained Prophet model.
+        periods (int): Number of days to forecast.
     
     Returns:
-        model (Prophet): Trained Prophet model.
+        forecast (pd.DataFrame): Forecasted data.
     """
     try:
-        # Initialize Prophet with holidays
-        model = Prophet(
-            daily_seasonality=True,
-            yearly_seasonality=True,
-            weekly_seasonality=True,
-            holidays=holidays
-        )
-        model.add_seasonality(name='monthly', period=30.5, fourier_order=5)
+        future = model.make_future_dataframe(periods=periods)
+        forecast = model.predict(future)
         
-        # Fit the model
-        model.fit(data)
+        # Ensure forecast values are not negative
+        forecast['yhat'] = forecast['yhat'].apply(lambda x: max(x, 0))
+        forecast['yhat_lower'] = forecast['yhat_lower'].apply(lambda x: max(x, 0))
+        forecast['yhat_upper'] = forecast['yhat_upper'].apply(lambda x: max(x, 0))
         
-        return model
+        return forecast
     except Exception as e:
-        st.error(f"Error training Prophet model: {e}")
+        st.error(f"Error during price forecasting: {e}")
         return None
 
-def main():
-    st.header("📊 Step 3: Train Prophet Model")
+def plot_forecast_streamlit(data, forecast, symbol):
+    """
+    Plot the historical and forecasted stock prices using Plotly.
     
-    # Check if 'cleaned_data' and 'symbol' exist in session_state
-    if 'cleaned_data' not in st.session_state or 'symbol' not in st.session_state:
-        st.warning("No cleaned data or symbol found. Please complete Steps 1 & 2: Fetch and Clean Data.")
+    Parameters:
+        data (pd.DataFrame): Historical stock data.
+        forecast (pd.DataFrame): Forecasted stock data.
+        symbol (str): Stock symbol.
+    """
+    try:
+        fig = go.Figure()
+        
+        # Plot historical data
+        fig.add_trace(go.Scatter(
+            x=data['ds'],
+            y=data['y'],
+            mode='lines',
+            name='Historical Stock Price',
+            line=dict(color='blue')
+        ))
+        
+        # Plot forecasted data
+        forecast_positive = forecast[forecast['yhat'] > 0]
+        fig.add_trace(go.Scatter(
+            x=forecast_positive['ds'],
+            y=forecast_positive['yhat'],
+            mode='lines',
+            name='Forecasted Price',
+            line=dict(color='red')
+        ))
+        
+        # Add confidence intervals
+        fig.add_trace(go.Scatter(
+            x=forecast_positive['ds'],
+            y=forecast_positive['yhat_upper'],
+            mode='lines',
+            name='Upper Confidence Interval',
+            line=dict(color='lightcoral'),
+            showlegend=False
+        ))
+        fig.add_trace(go.Scatter(
+            x=forecast_positive['ds'],
+            y=forecast_positive['yhat_lower'],
+            mode='lines',
+            name='Lower Confidence Interval',
+            line=dict(color='lightcoral'),
+            fill='tonexty',
+            fillcolor='rgba(255, 182, 193, 0.2)',
+            showlegend=False
+        ))
+        
+        # Update layout for better aesthetics
+        fig.update_layout(
+            title=f'Forecast for {symbol}',
+            xaxis_title='Date',
+            yaxis_title='Price',
+            legend=dict(x=0, y=1),
+            hovermode='x unified',
+            template='plotly_white',
+            width=1000,
+            height=600
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+    except Exception as e:
+        st.error(f"Error plotting forecast for {symbol}: {e}")
+
+def main():
+    st.header("🔮 Step 4: Forecast")
+    
+    # Check if required session states are present
+    required_keys = ['prophet_model', 'holidays', 'cleaned_data', 'symbol']
+    missing_keys = [key for key in required_keys if key not in st.session_state]
+    if missing_keys:
+        st.warning(f"Missing data in session state: {', '.join(missing_keys)}. Please complete the previous steps.")
         return
     
-    data = st.session_state['cleaned_data']
+    model = st.session_state['prophet_model']
+    holidays = st.session_state['holidays']  # Not used here but kept for consistency
+    cleaned_data = st.session_state['cleaned_data']
     symbol = st.session_state['symbol']
     
-    st.subheader(f"Training Prophet Model for {symbol}")
-    st.write("**Cleaned Data Preview:**")
-    st.dataframe(data.head())
+    st.subheader(f"Generating Forecast for {symbol}")
     
-    train_button = st.button("Train Prophet Model")
+    forecast_days = st.number_input("Number of days to forecast", min_value=1, max_value=365, value=30)
+    forecast_button = st.button("Generate Forecast")
     
-    if train_button:
-        with st.spinner("Training Prophet model..."):
-            holidays = add_holiday_effects()
-            model = train_prophet_model(data, holidays)
-            if model:
-                st.success("Prophet model trained successfully!")
-                # Store the trained model and holidays in session_state
-                st.session_state['prophet_model'] = model
-                st.session_state['holidays'] = holidays
+    if forecast_button:
+        with st.spinner("Generating forecast..."):
+            forecast = forecast_prices(model, forecast_days)
+            if forecast is not None:
+                st.success("Forecast generated successfully!")
+                st.write("**Forecast Data Preview:**")
+                st.dataframe(forecast.tail())
+                
+                # Plot Forecast using Plotly
+                plot_forecast_streamlit(cleaned_data, forecast, symbol)
             else:
-                st.error("Prophet model training failed.")
+                st.error("Forecast generation failed.")
 
 if __name__ == "__main__":
     main()

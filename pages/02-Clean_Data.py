@@ -66,11 +66,10 @@ def main():
                 st.error("Data cleaning failed. Please check the raw data.")
     st.markdown("---")
     st.markdown("### Select a Step:")
-    # Navigation Buttons with Correct Page Titles
-    if st.button("Step 1: Fetch Raw Data"):
-        switch_page("fetch raw data")
     
-  
+    
+    if st.button("Step 2: Clean Data"):
+        switch_page("clean data")
     
     if st.button("Step 3: Train Prophet Model"):
         switch_page("train prophet")

@@ -143,7 +143,7 @@ def main():
                 st.markdown(
                     """
                     <div style="text-align:center; font-size: 20px; margin: 20px 0;">
-                        <span style="color: #0078FF; font-weight: bold;">📊 Scroll Down for Results 📊</span>
+                        <span style="color: #0078FF; font-weight: bold;">📊 Scroll Down for the Plot 📊</span>
                     </div>
                     """,
                     unsafe_allow_html=True,

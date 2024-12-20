@@ -10,6 +10,7 @@ Created on Fri Dec 20 22:20:58 2024
 
 import streamlit as st
 import pandas as pd
+from streamlit_extras.switch_page_button import switch_page  # Import switch_page for navigation
 
 def clean_data(data):
     try:
@@ -64,17 +65,21 @@ def main():
                 )
             else:
                 st.error("Data cleaning failed. Please check the raw data.")
+    
+    # Add navigation buttons for next and previous steps
     st.markdown("---")
-    st.markdown("### Select a Step:")
+    st.markdown("### Navigate to the Next Step:")
     
+    if 'cleaned_data' in st.session_state:
+        if st.button("Next Step: Train Prophet Model"):
+            switch_page("train prophet")
+    else:
+        st.warning("Please clean the data before proceeding to the next step.")
     
-    if st.button("Step 2: Clean Data"):
-        switch_page("clean data")
-    
-    if st.button("Step 3: Train Prophet Model"):
-        switch_page("train prophet")
-    
-    if st.button("Step 4: Forecast and Anomaly Detection"):
-        switch_page("forecast anomaly detection")
+    st.markdown("---")
+    st.markdown("### Return to the Previous Step:")
+    if st.button("Previous Step: Fetch Raw Data"):
+        switch_page("fetch raw data")
+
 if __name__ == "__main__":
     main()

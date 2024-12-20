@@ -138,8 +138,11 @@ def plot_percentage_change(forecast):
         forecast (pd.DataFrame): Forecasted stock data.
     """
     try:
+        # Create a copy to avoid modifying the original DataFrame
+        forecast_copy = forecast.copy()
+        
         # Sort forecast by date to ensure correct order
-        forecast_sorted = forecast.sort_values('ds')
+        forecast_sorted = forecast_copy.sort_values('ds')
         
         # Calculate daily percentage change between consecutive forecasted days
         forecast_sorted['pct_change'] = forecast_sorted['yhat'].pct_change() * 100
@@ -170,7 +173,7 @@ def plot_percentage_change(forecast):
         
         st.plotly_chart(fig, use_container_width=True)
     except Exception as e:
-        st.error(f"Error plotting percentage change: {e}")
+        st.error(f"Error plotting daily percentage change: {e}")
 
 def plot_percentage_change_weekly(forecast):
     """
@@ -180,14 +183,17 @@ def plot_percentage_change_weekly(forecast):
         forecast (pd.DataFrame): Forecasted stock data.
     """
     try:
+        # Create a copy to avoid modifying the original DataFrame
+        forecast_copy = forecast.copy()
+        
         # Ensure 'ds' is datetime
-        forecast['ds'] = pd.to_datetime(forecast['ds'])
+        forecast_copy['ds'] = pd.to_datetime(forecast_copy['ds'])
         
         # Set 'ds' as index
-        forecast.set_index('ds', inplace=True)
+        forecast_copy.set_index('ds', inplace=True)
         
         # Resample to weekly frequency, taking the last value of each week
-        weekly_forecast = forecast.resample('W').last().reset_index()
+        weekly_forecast = forecast_copy.resample('W').last().reset_index()
         
         # Calculate weekly percentage change
         weekly_forecast['weekly_pct_change'] = weekly_forecast['yhat'].pct_change() * 100
@@ -228,7 +234,13 @@ def plot_cumulative_forecast(forecast):
         forecast (pd.DataFrame): Forecasted stock data.
     """
     try:
-        forecast_sorted = forecast.sort_values('ds').copy()
+        # Create a copy to avoid modifying the original DataFrame
+        forecast_copy = forecast.copy()
+        
+        # Sort forecast by date to ensure correct order
+        forecast_sorted = forecast_copy.sort_values('ds').copy()
+        
+        # Calculate cumulative sum of 'yhat'
         forecast_sorted['cumulative_yhat'] = forecast_sorted['yhat'].cumsum()
         
         fig = go.Figure()
@@ -363,6 +375,11 @@ def main():
         
         # Get the last actual date from the cleaned data
         last_actual_date = cleaned_data['ds'].max()
+        
+        # Ensure 'ds' is present in forecast
+        if 'ds' not in forecast.columns:
+            st.error("Forecast DataFrame is missing the 'ds' column.")
+            return
         
         # Separate forecasted data from historical data
         forecasted = forecast[forecast['ds'] > last_actual_date].reset_index(drop=True)

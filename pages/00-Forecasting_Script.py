@@ -17,7 +17,7 @@ def main():
     1. **Fetch Raw Data:** Retrieve stock data from Yahoo Finance.
     2. **Clean Data:** Preprocess the data to prepare it for modeling.
     3. **Train Prophet Model:** Train a forecasting model using Facebook Prophet.
-    4. **Forecast:** Generate future forecasts and visualize them interactively.
+    4. **Forecast:** Generate future forecasts using FB Prophet and visualize them interactively.
     """)
     
     st.markdown("---")

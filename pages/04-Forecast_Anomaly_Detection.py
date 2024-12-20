@@ -383,7 +383,7 @@ def main():
         with st.container():
             st.subheader("📊 Forecast Plots")
             # Organize plots in columns for better layout
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
             with col1:
                 plot_forecast_streamlit(cleaned_data, forecast, symbol, key='forecast_plot')
             with col2:

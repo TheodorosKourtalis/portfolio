@@ -129,15 +129,7 @@ def main():
     
     forecast_days = st.number_input("Number of days to forecast", min_value=1, max_value=365, value=30)
     
-    # Nice looking pointer
-    st.markdown(
-        """
-        <div style="text-align:center; font-size: 20px; margin: 20px 0;">
-            <span style="color: #555; font-weight: bold;">👇 Scroll Down for the Forecast 👇</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+
     
     forecast_button = st.button("Generate Forecast")
     

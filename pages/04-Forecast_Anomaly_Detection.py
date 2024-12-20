@@ -91,6 +91,30 @@ def plot_forecast_streamlit(data, forecast, symbol):
             showlegend=False
         ))
         
+        # Highlight the last day of historical data
+        last_historical_date = data['ds'].max()
+        last_historical_price = data[data['ds'] == last_historical_date]['y'].values[0]
+        fig.add_trace(go.Scatter(
+            x=[last_historical_date],
+            y=[last_historical_price],
+            mode='markers',
+            name='Last Historical Day',
+            marker=dict(color='green', size=10, symbol='circle'),
+            showlegend=True
+        ))
+        
+        # Highlight the last day of forecast
+        last_forecast_date = forecast_positive['ds'].max()
+        last_forecast_price = forecast_positive[forecast_positive['ds'] == last_forecast_date]['yhat'].values[0]
+        fig.add_trace(go.Scatter(
+            x=[last_forecast_date],
+            y=[last_forecast_price],
+            mode='markers',
+            name='End of Forecast',
+            marker=dict(color='purple', size=10, symbol='triangle-up'),
+            showlegend=True
+        ))
+        
         # Update layout for better aesthetics
         fig.update_layout(
             title=f'Forecast for {symbol}',
@@ -188,6 +212,7 @@ def main():
         unsafe_allow_html=True,
     )
     
+    # Generate Forecast Button
     forecast_button = st.button("Generate Forecast")
     
     if forecast_button:
@@ -208,6 +233,9 @@ def main():
                 
                 st.write("**Forecast Data Preview:**")
                 st.dataframe(forecast.tail())
+                
+                # Store forecast in session_state for dynamic slider
+                st.session_state['forecast'] = forecast
                 
                 # Display forecasted value for the selected day
                 if specific_day <= forecast_days:
@@ -234,14 +262,53 @@ def main():
             else:
                 st.error("Forecast generation failed.")
     
+    # If forecast is already generated, display the slider and related information dynamically
+    if 'forecast' in st.session_state:
+        forecast = st.session_state['forecast']
+        
+        st.markdown(
+            """
+            <div style="text-align:center; font-size: 20px; margin: 20px 0;">
+                <span style="color: #555; font-weight: bold;">👇 Scroll Down to View Forecast Details 👇</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        
+        st.write("**Forecast Data Preview:**")
+        st.dataframe(forecast.tail())
+        
+        # Display forecasted value for the selected day
+        if specific_day <= forecast_days:
+            forecast_date = forecast['ds'].iloc[-forecast_days + specific_day - 1]
+            forecast_value = forecast['yhat'].iloc[-forecast_days + specific_day - 1]
+            forecast_lower = forecast['yhat_lower'].iloc[-forecast_days + specific_day - 1]
+            forecast_upper = forecast['yhat_upper'].iloc[-forecast_days + specific_day - 1]
+            
+            st.markdown(
+                f"""
+                ### 📅 Forecast for {forecast_date.date()}:
+                - **Predicted Price:** ${forecast_value:,.2f}
+                - **Confidence Interval:** (${forecast_lower:,.2f}, ${forecast_upper:,.2f})
+                """
+            )
+        else:
+            st.warning("Selected day exceeds the forecast period.")
+        
+        # Plot Forecast using Plotly
+        plot_forecast_streamlit(cleaned_data, forecast, symbol)
+        
+        # Plot Percentage Change
+        plot_percentage_change(cleaned_data, forecast)
+    
     # Navigation buttons
     st.markdown("---")
     
-    # Show "Next Step" button only if forecast is generated
-    if 'prophet_model' in st.session_state and 'cleaned_data' in st.session_state:
-        st.markdown("### Navigate to the Next Step:")
-        if st.button("Next Step: Fetch Raw Data"):
-            switch_page("fetch raw data")  # Redirect to Step 1 since there's no next step yet
+    # Since there's no "Next Step," redirect back to "Fetch Raw Data"
+    st.markdown("### Navigate to Other Steps:")
+    
+    if st.button("Go to Step 1: Fetch Raw Data"):
+        switch_page("fetch raw data")  # Redirect to Step 1
     
     # Show "Previous Step" button
     st.markdown("### Return to the Previous Step:")

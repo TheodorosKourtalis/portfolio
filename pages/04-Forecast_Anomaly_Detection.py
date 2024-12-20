@@ -302,15 +302,7 @@ def main():
         step=1
     )
     
-    # Stylish Pointer Before Forecast Generation
-    st.markdown(
-        """
-        <div style="text-align:center; font-size: 20px; margin: 20px 0;">
-            <span style="color: #555; font-weight: bold;">👇 Scroll Down to Generate Forecast 👇</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+
     
     # Generate Forecast Button
     forecast_button = st.button("Generate Forecast")
@@ -383,15 +375,7 @@ def main():
             forecast_upper = forecast_row['yhat_upper']
             
             # Display the forecasted value and confidence interval
-            st.markdown(
-                f"""
-                ### 📅 Forecast for {forecast_date.date()}:
-                - **Predicted Price:** ${forecast_value:,.2f}
-                - **Confidence Interval:** (${forecast_lower:,.2f}, ${forecast_upper:,.2f})
-                """
-            )
-        else:
-            st.warning("Selected day exceeds the forecast period.")
+
         
         # Display all plots
         with st.container():

@@ -22,10 +22,11 @@ def main():
     st.markdown("---")
     st.markdown("### Navigate to the Steps Below:")
     
-    st.markdown("- [Step 1: Fetch Raw Data](1_Fetch_Raw_Data.py)")
-    st.markdown("- [Step 2: Clean Data](2_Clean_Data.py)")
-    st.markdown("- [Step 3: Train Prophet Model](3_Train_Prophet_Model.py)")
-    st.markdown("- [Step 4: Forecast](4_Forecast.py)")
+    # Navigation using markdown links for multi-page apps
+    st.markdown("- [Step 1: Fetch Raw Data](./1_Fetch_Raw_Data)")
+    st.markdown("- [Step 2: Clean Data](./2_Clean_Data)")
+    st.markdown("- [Step 3: Train Prophet Model](./3_Train_Prophet_Model)")
+    st.markdown("- [Step 4: Forecast](./4_Forecast)")
     
     st.markdown("---")
     st.markdown("**Start by clicking on Step 1 above or use the sidebar navigation.**")

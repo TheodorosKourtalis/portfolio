@@ -1,22 +1,19 @@
 import streamlit as st
+import importlib
 
 def load_page(page_name):
     """
     Dynamically load the corresponding page module based on the page_name.
     """
-    if page_name == "fetch_raw_data":
-        import pages.forecasting_steps.fetch_raw_data
-    elif page_name == "clean_data":
-        import pages.forecasting_steps.clean_data
-    elif page_name == "train_prophet":
-        import pages.forecasting_steps.train_prophet
-    elif page_name == "forecast":
-        import pages.forecasting_steps.forecast
-    else:
-        st.error("Page not found! Please select a valid step.")
+    try:
+        module = importlib.import_module(f"pages.forecasting_steps.{page_name}")
+        module.main()  # Call the main function in the loaded module (if it exists)
+    except ModuleNotFoundError as e:
+        st.error(f"Module not found: {page_name}. Ensure the file exists in the forecasting_steps directory.")
+    except AttributeError:
+        st.error(f"The module {page_name} does not have a `main` function.")
 
 def main():
-    # Set the title and introduction
     st.title("📈 Forecasting Workflow")
     st.markdown("""
     Welcome to the **Forecasting Workflow**! Follow the steps below to generate stock price forecasts:
@@ -28,11 +25,9 @@ def main():
     4. **Forecast:** Generate future forecasts and visualize them interactively.
     """)
 
-    # Horizontal separator
     st.markdown("---")
     st.markdown("### Select a Step to Proceed:")
 
-    # Custom navigation buttons to select a step
     if st.button("Step 1: Fetch Raw Data"):
         st.session_state["current_page"] = "fetch_raw_data"
 

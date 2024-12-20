@@ -12,6 +12,7 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 from datetime import datetime
+from streamlit_extras.switch_page_button import switch_page  # Import switch_page for navigation
 
 def fetch_stock_data(symbol, start_date, end_date):
     try:
@@ -54,7 +55,6 @@ def main():
                 
                 # Rename columns for Prophet
                 date_column = 'Date' if 'Date' in data.columns else None
-                # Assuming 'Close' column is present; adjust if different
                 close_column_candidates = [col for col in data.columns if 'Close' in col]
                 close_column = close_column_candidates[0] if close_column_candidates else None
                 
@@ -70,18 +70,11 @@ def main():
                     st.error("Unable to identify required columns 'Date' and 'Close'.")
             else:
                 st.error("Failed to fetch data. Please check the stock symbol and date range.")
-    st.markdown("---")
-    st.markdown("### Select a Step:")
-    
-    
-    if st.button("Step 2: Clean Data"):
-        switch_page("clean data")
-    
-    if st.button("Step 3: Train Prophet Model"):
-        switch_page("train prophet")
-    
-    if st.button("Step 4: Forecast and Anomaly Detection"):
-        switch_page("forecast anomaly detection")
+
+    # Add a "Next Step" button
+    if st.session_state.get('raw_data') is not None:
+        if st.button("Next Step: Clean Data"):
+            switch_page("clean data")  # Navigate to the next page
 
 if __name__ == "__main__":
     main()

@@ -75,9 +75,11 @@ def main():
             switch_page("train prophet")
     else:
         st.warning("Please clean the data before proceeding to the next step.")
-        st.markdown("### Return to the Previous Step:")
-            if st.button("Previous Step: Fetch Raw Data"):
-                   switch_page("fetch raw data")
+    
+    st.markdown("---")
+    st.markdown("### Return to the Previous Step:")
+    if st.button("Previous Step: Fetch Raw Data"):
+        switch_page("fetch raw data")
 
 if __name__ == "__main__":
     main()

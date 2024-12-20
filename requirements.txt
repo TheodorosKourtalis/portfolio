@@ -11,3 +11,4 @@ keras
 plotly
 statsmodels
 tensorflow
+streamlit-extras

@@ -229,46 +229,6 @@ def plot_percentage_change_weekly(forecast, key='weekly_pct_change_plot'):
     except Exception as e:
         st.error(f"Error plotting weekly percentage change: {e}")
 
-def plot_cumulative_forecast(forecast, key='cumulative_forecast_plot'):
-    """
-    Plot the cumulative forecasted stock prices over time.
-    
-    Parameters:
-        forecast (pd.DataFrame): Forecasted stock data.
-        key (str): Unique key for the plotly_chart.
-    """
-    try:
-        # Create a copy to avoid modifying the original DataFrame
-        forecast_copy = forecast.copy()
-        
-        # Sort forecast by date to ensure correct order
-        forecast_sorted = forecast_copy.sort_values('ds').copy()
-        
-        # Calculate cumulative sum of 'yhat'
-        forecast_sorted['cumulative_yhat'] = forecast_sorted['yhat'].cumsum()
-        
-        fig = go.Figure()
-        
-        fig.add_trace(go.Scatter(
-            x=forecast_sorted['ds'],
-            y=forecast_sorted['cumulative_yhat'],
-            mode='lines',
-            name='Cumulative Forecasted Price',
-            line=dict(color='orange')
-        ))
-        
-        fig.update_layout(
-            title='Cumulative Forecasted Stock Prices',
-            xaxis_title='Date',
-            yaxis_title='Cumulative Price ($)',
-            template='plotly_white',
-            width=800,
-            height=500
-        )
-        
-        st.plotly_chart(fig, use_container_width=True, key=key)
-    except Exception as e:
-        st.error(f"Error plotting cumulative forecast: {e}")
 
 def main():
     st.header("🔮 Step 4: Forecast")
@@ -371,13 +331,16 @@ def main():
             # Calculate the difference between the last historical day's price and the forecasted price
             last_historical_price = cleaned_data[cleaned_data['ds'] == last_actual_date]['y'].values[0]
             price_difference = forecast_value - last_historical_price
+            percentage_difference = (price_difference / last_historical_price) * 100  # Calculate percentage difference
+
            # Add the new difference information to the markdown
             st.markdown(
                 f"""
                 ### 📅 Forecast for {forecast_date.date()}:
                  - **Predicted Price:** ${forecast_value:,.2f}
                  - **Confidence Interval:** (${forecast_lower:,.2f}, ${forecast_upper:,.2f})
-                 - **Difference from Last Historical Day:** ${price_difference:,.2f} {"(Increase)" if price_difference > 0 else "(Decrease)"}
+                 - **Difference from Last Historical Day:** ${price_difference:,.2f}  {"(Increase)" if price_difference > 0 else "(Decrease)"}
+                 - **Percentage Change:** {percentage_difference:.2f}% {"(Increase)" if price_difference > 0 else "(Decrease)"}
                  """
                  )
         else:

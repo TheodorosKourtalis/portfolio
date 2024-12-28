@@ -25,7 +25,6 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 from statsmodels.graphics.tsaplots import plot_acf
 import os
-from collections import OrderedDict
 
 # Suppress future warnings
 import warnings
@@ -45,8 +44,13 @@ st.set_page_config(
 @st.cache_data(show_spinner=False)
 def fetch_market_data(tickers, start_date, end_date):
     try:
+        # Remove duplicates and ensure uppercase
+        unique_tickers = list(dict.fromkeys([ticker.strip().upper() for ticker in tickers]))
+        if not unique_tickers:
+            raise ValueError("No ticker symbols provided.")
+        
         # Fetch data using yfinance
-        data = yf.download(tickers, start=start_date, end=end_date, progress=False, group_by='ticker')
+        data = yf.download(unique_tickers, start=start_date, end=end_date, progress=False, group_by='ticker')
         
         if data.empty:
             raise ValueError("No data fetched. Please check your ticker symbols and date range.")
@@ -55,30 +59,22 @@ def fetch_market_data(tickers, start_date, end_date):
         invalid_tickers = []
         
         # Handle single and multiple tickers
-        if isinstance(tickers, str):
-            tickers = [tickers]
-        
-        for ticker in tickers:
-            if ticker not in data.columns.levels[0]:
-                # Single ticker might not have multi-level columns
-                if isinstance(data, pd.Series):
-                    adj_close[ticker] = data
-                elif 'Adj Close' in data.columns:
+        for ticker in unique_tickers:
+            try:
+                if len(unique_tickers) == 1:
+                    # Single ticker scenario
                     adj_close[ticker] = data['Adj Close']
                 else:
-                    invalid_tickers.append(ticker)
-                continue
-            else:
-                if 'Adj Close' in data[ticker].columns:
+                    # Multiple tickers scenario
                     adj_close[ticker] = data[ticker]['Adj Close']
-                else:
-                    invalid_tickers.append(ticker)
+            except KeyError:
+                invalid_tickers.append(ticker)
         
         # Drop tickers with all NaN values
         adj_close.dropna(axis=1, how='all', inplace=True)
         
         # Identify remaining invalid tickers
-        remaining_invalid = [ticker for ticker in tickers if ticker not in adj_close.columns]
+        remaining_invalid = [ticker for ticker in unique_tickers if ticker not in adj_close.columns]
         if remaining_invalid:
             invalid_tickers.extend(remaining_invalid)
         
@@ -457,10 +453,9 @@ def main():
     
     tickers_input = st.sidebar.text_input(
         "📊 Enter Ticker Symbols (comma-separated)",
-        value="AAPL, MSFT, AAPL, MSFT"  # Example with duplicates
+        value="AAPL, MSFT"
     )
-    # Remove duplicates while preserving order
-    tickers = list(OrderedDict.fromkeys([ticker.strip().upper() for ticker in tickers_input.split(',') if ticker.strip()]))
+    tickers = [ticker.strip().upper() for ticker in tickers_input.split(',') if ticker.strip()]
     
     start_date = st.sidebar.date_input(
         "📅 Start Date",

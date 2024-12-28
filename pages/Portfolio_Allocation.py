@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Dec 20 22:20:28 2024
+Portfolio Optimization Dashboard - Single Page Streamlit App
 
 Author: Theodoros Kourtales
+Date: Fri Dec 20 22:20:28 2024
 """
 
 import streamlit as st
@@ -14,10 +15,11 @@ from datetime import datetime
 import plotly.express as px
 from pypfopt import risk_models, expected_returns, EfficientFrontier
 from pypfopt import plotting
+from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
 import matplotlib.pyplot as plt
 import io
 
-# Suppress warnings
+# Suppress warnings for a cleaner interface
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -28,18 +30,30 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Helper function to fetch data
+# --- Helper Functions ---
+
 @st.cache_data(show_spinner=False)
 def fetch_stock_data(tickers, start_date, end_date):
     """
     Fetch adjusted close data for given tickers and date range.
+    
+    Parameters:
+        tickers (list): List of stock ticker symbols.
+        start_date (datetime): Start date for data fetching.
+        end_date (datetime): End date for data fetching.
+        
+    Returns:
+        adj_close (DataFrame): Adjusted close prices.
+        valid_tickers (list): List of valid tickers fetched.
     """
     try:
+        # Remove duplicates and ensure uppercase
         unique_tickers = list(dict.fromkeys([ticker.strip().upper() for ticker in tickers]))
         if not unique_tickers:
             st.error("❌ No ticker symbols provided.")
             return None, None
         
+        # Fetch data using yfinance
         data = yf.download(unique_tickers, start=start_date, end=end_date, progress=False, group_by='ticker')
         
         if data.empty:
@@ -80,17 +94,32 @@ def fetch_stock_data(tickers, start_date, end_date):
         st.error(f"Error fetching market data: {e}")
         return None, None
 
-# Helper function to calculate daily returns
 def calculate_daily_returns(adj_close):
     """
-    Calculate daily percentage returns.
+    Calculate daily percentage returns from adjusted close prices.
+    
+    Parameters:
+        adj_close (DataFrame): Adjusted close prices.
+        
+    Returns:
+        returns (DataFrame): Daily returns.
     """
-    return adj_close.pct_change().dropna()
+    returns = adj_close.pct_change().dropna()
+    return returns
 
-# Helper function for portfolio optimization
 def optimize_portfolio(returns, risk_free_rate=0.02):
     """
     Perform Mean-Variance Optimization to maximize Sharpe Ratio.
+    
+    Parameters:
+        returns (DataFrame): Daily returns of the stocks.
+        risk_free_rate (float): Risk-free rate for Sharpe Ratio calculation.
+        
+    Returns:
+        weights (dict): Optimized portfolio weights.
+        exp_return (float): Expected annual return.
+        vol (float): Annual volatility.
+        sharpe (float): Sharpe Ratio.
     """
     mu = expected_returns.mean_historical_return(returns)
     S = risk_models.sample_cov(returns)
@@ -98,17 +127,43 @@ def optimize_portfolio(returns, risk_free_rate=0.02):
     ef = EfficientFrontier(mu, S)
     weights = ef.max_sharpe(risk_free_rate=risk_free_rate)
     cleaned_weights = ef.clean_weights()
-    expected_annual_return, annual_volatility, sharpe_ratio = ef.portfolio_performance(verbose=False)
+    exp_return, vol, sharpe = ef.portfolio_performance(verbose=False)
     
-    return cleaned_weights, expected_annual_return, annual_volatility, sharpe_ratio
+    return cleaned_weights, exp_return, vol, sharpe
 
-# Main function
+def plot_efficient_frontier(mu, S):
+    """
+    Plot the Efficient Frontier using Matplotlib and convert it to an image for Streamlit.
+    
+    Parameters:
+        mu (Series): Expected returns.
+        S (DataFrame): Covariance matrix.
+        
+    Returns:
+        image (bytes): Image bytes of the Efficient Frontier plot.
+    """
+    ef = EfficientFrontier(mu, S)
+    fig, ax = plt.subplots(figsize=(10, 6))
+    plotting.plot_efficient_frontier(ef, ax=ax, show_assets=True)
+    plt.title("📈 Efficient Frontier")
+    
+    # Save the plot to a bytes buffer
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png")
+    plt.close(fig)
+    buf.seek(0)
+    image = buf.read()
+    
+    return image
+
+# --- Main Application ---
+
 def main():
     st.title("📈 Portfolio Optimization Dashboard")
     st.markdown("""
     This application fetches and analyzes financial data for specified companies. 
-    Enter the ticker symbols, select optimization techniques, and explore various 
-    financial metrics and portfolio allocations.
+    Enter the ticker symbols, select the date range, and perform portfolio optimization 
+    to explore various financial metrics and portfolio allocations.
     """)
     
     # Sidebar Inputs
@@ -177,7 +232,9 @@ def main():
         
         # Clean Data Section
         st.header("🧹 Clean Data")
-        st.markdown("The data has been fetched and is ready for cleaning. This involves handling missing values and preparing the data for analysis.")
+        st.markdown("""
+        The data has been fetched and is ready for cleaning. This involves handling missing values and preparing the data for analysis.
+        """)
         
         # Calculate and display daily returns
         returns = calculate_daily_returns(adj_close)
@@ -256,19 +313,12 @@ def main():
                 st.subheader("📈 Efficient Frontier")
                 mu = expected_returns.mean_historical_return(adj_close)
                 S = risk_models.sample_cov(adj_close)
-                ef = EfficientFrontier(mu, S)
-                fig_ef, ax = plt.subplots()
-                plotting.plot_efficient_frontier(ef, ax=ax, show_assets=True)
-                buf = io.BytesIO()
-                fig_ef.savefig(buf, format="png")
-                buf.seek(0)
-                image = buf.read()
-                st.image(image, caption='Efficient Frontier', use_column_width=True)
-                plt.close(fig_ef)
+                ef_plot = EfficientFrontier(mu, S)
+                fig_ef_image = plot_efficient_frontier(mu, S)
+                st.image(fig_ef_image, caption='Efficient Frontier', use_column_width=True)
                 
-                # Optional: Discrete Allocation
+                # Discrete Allocation
                 st.subheader("💼 Discrete Allocation")
-                from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
                 latest_prices = get_latest_prices(adj_close)
                 total_portfolio_value = st.number_input(
                     "💵 Enter Total Portfolio Value (USD)",

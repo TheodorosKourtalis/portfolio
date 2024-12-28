@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-SEC Filing Scraper and Analysis - Streamlit Version
+Portfolio Optimization Dashboard - Streamlit Version
 
 Author: Thodoreskourtales
 """
@@ -28,6 +28,7 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 from statsmodels.graphics.tsaplots import plot_acf
 import os
+
 # Suppress future warnings
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -41,19 +42,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# Function to ensure required packages are installed (Optional in Streamlit)
-def install_packages():
-    REQUIRED_PACKAGES = ["cvxpy", "numpy", "pandas", "scipy", "yfinance",
-                         "matplotlib", "sklearn", "pypfopt", "requests", "plotly", "statsmodels"]
-    for package in REQUIRED_PACKAGES:
-        try:
-            importlib.import_module(package)
-        except ImportError:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-
-# Uncomment the line below if you want to auto-install missing packages
-# install_packages()
 
 # Function to fetch data from URL with caching
 @st.cache_data(show_spinner=False)
@@ -998,5 +986,5 @@ def main():
             console_text = '\n'.join(console_output)
             st.text_area("Console Output", value=console_text, height=300)
 
-    if __name__ == "__main__":
-        main()
+if __name__ == "__main__":
+    main()

@@ -40,55 +40,81 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Function to fetch market data using yfinance with enhanced error handling
-@st.cache_data(show_spinner=False)
-def fetch_market_data(tickers, start_date, end_date):
-    try:
-        # Remove duplicates and ensure uppercase
-        unique_tickers = list(dict.fromkeys([ticker.strip().upper() for ticker in tickers]))
-        if not unique_tickers:
-            raise ValueError("No ticker symbols provided.")
-        
-        # Fetch data using yfinance
-        data = yf.download(unique_tickers, start=start_date, end=end_date, progress=False, group_by='ticker')
-        
-        if data.empty:
-            raise ValueError("No data fetched. Please check your ticker symbols and date range.")
-        
-        adj_close = pd.DataFrame()
-        invalid_tickers = []
-        
-        # Handle single and multiple tickers
-        for ticker in unique_tickers:
-            try:
-                if len(unique_tickers) == 1:
-                    # Single ticker scenario
-                    adj_close[ticker] = data['Adj Close']
-                else:
-                    # Multiple tickers scenario
-                    adj_close[ticker] = data[ticker]['Adj Close']
-            except KeyError:
+# New Function to Validate Tickers
+def validate_tickers(tickers):
+    """
+    Validate the provided tickers by checking if they have valid data over the past month.
+    """
+    tickers = list(set(ticker.strip().upper() for ticker in tickers))  # Normalize to uppercase
+    end_date = datetime.datetime.now().date()
+    start_date = end_date - datetime.timedelta(days=30)
+
+    valid_tickers = []
+    invalid_tickers = []
+    for ticker in tickers:
+        try:
+            # Download data for the past month to check validity
+            data = yf.download(ticker, start=start_date, end=end_date, progress=False)
+            if not data.empty:
+                valid_tickers.append(ticker)
+            else:
                 invalid_tickers.append(ticker)
-        
-        # Drop tickers with all NaN values
-        adj_close.dropna(axis=1, how='all', inplace=True)
-        
-        # Identify remaining invalid tickers
-        remaining_invalid = [ticker for ticker in unique_tickers if ticker not in adj_close.columns]
-        if remaining_invalid:
-            invalid_tickers.extend(remaining_invalid)
-        
-        # Inform the user about invalid tickers
-        if invalid_tickers:
-            st.warning(f"⚠️ The following tickers were invalid or have no 'Adj Close' data and have been excluded: {', '.join(invalid_tickers)}")
-        
-        if adj_close.empty:
-            raise ValueError("No valid tickers with 'Adj Close' data found.")
-        
-        return adj_close
+        except Exception as e:
+            st.warning(f"Failed to validate ticker {ticker}: {e}")
+            invalid_tickers.append(ticker)
+
+    if invalid_tickers:
+        st.warning(f"⚠️ The following tickers are invalid or have insufficient data and will be excluded: {', '.join(invalid_tickers)}")
+
+    return valid_tickers
+
+# New Function to Fetch Data
+def fetch_data(tickers, start_date, end_date):
+    """
+    Fetch adjusted close prices and market capitalizations for given tickers from Yahoo Finance.
+    """
+    tickers = [ticker.strip().upper() for ticker in tickers]  # Normalize to uppercase
+    st.write("Fetching data for:", tickers)
+    
+    try:
+        # Fetch historical data
+        data = yf.download(tickers, start=start_date, end=end_date, progress=False)
+        if len(tickers) == 1:
+            # If only one ticker, yfinance returns a DataFrame with columns like 'Open', 'High', etc.
+            adj_close = data['Adj Close'].to_frame()
+            adj_close.columns = tickers
+        else:
+            if 'Adj Close' in data.columns:
+                adj_close = data['Adj Close']
+            elif 'Close' in data.columns:
+                adj_close = data['Close']
+            else:
+                raise KeyError("No 'Adj Close' or 'Close' column in downloaded data.")
     except Exception as e:
-        st.error(f"Error fetching market data: {e}")
-        return pd.DataFrame()
+        st.error(f"Error fetching data for tickers: {e}")
+        return pd.DataFrame(), {}
+
+    # Validate which tickers were successfully fetched
+    valid_tickers = adj_close.columns.tolist()
+    invalid_tickers = list(set(tickers) - set(valid_tickers))
+    
+    if invalid_tickers:
+        st.warning(f"⚠️ The following tickers could not be fetched: {', '.join(invalid_tickers)}")
+
+    # Fetch market capitalizations
+    mcaps = {}
+    for ticker in valid_tickers:
+        try:
+            stock = yf.Ticker(ticker)
+            market_cap = stock.info.get('marketCap')
+            if market_cap:
+                mcaps[ticker] = market_cap
+            else:
+                st.warning(f"⚠️ Market capitalization for {ticker} not found.")
+        except Exception as e:
+            st.warning(f"⚠️ Failed to fetch market capitalization for {ticker}: {e}")
+
+    return adj_close, mcaps
 
 # Function to calculate daily returns
 def calculate_daily_returns(data):
@@ -132,7 +158,7 @@ def mean_variance_optimization(returns, risk_free_rate=0.0):
     optimized = minimize(objective_function, initial_guess, method='SLSQP', bounds=bounds, constraints=constraints)
 
     if not optimized.success:
-        st.error("Mean-Variance Optimization failed.")
+        st.error("❌ Mean-Variance Optimization failed.")
         return None
 
     return dict(zip(returns.columns, optimized.x))
@@ -141,7 +167,7 @@ def mean_variance_optimization(returns, risk_free_rate=0.0):
 def black_litterman_allocation(market_prices, mcaps, cov_matrix, viewdict, tau=0.05):
     """Optimize portfolio using Black-Litterman model."""
     try:
-        delta = black_litterman.market_implied_risk_aversion(market_prices.mean())
+        delta = black_litterman.market_implied_risk_aversion(mcaps, market_prices)
         prior = black_litterman.market_implied_prior_returns(mcaps, delta, cov_matrix)
         bl = BlackLittermanModel(cov_matrix, pi=prior, absolute_views=viewdict, tau=tau)
         posterior_rets = bl.bl_returns()
@@ -153,7 +179,7 @@ def black_litterman_allocation(market_prices, mcaps, cov_matrix, viewdict, tau=0
         
         return cleaned_weights, performance
     except Exception as e:
-        st.error(f"Black-Litterman Optimization failed: {e}")
+        st.error(f"❌ Black-Litterman Optimization failed: {e}")
         return None, None
 
 # Function for Risk Parity Optimization
@@ -183,7 +209,7 @@ def risk_parity_optimization(returns):
     optimized = minimize(objective_function, initial_guess, method='SLSQP', bounds=bounds, constraints=constraints)
 
     if not optimized.success:
-        st.error("Risk Parity Optimization failed.")
+        st.error("❌ Risk Parity Optimization failed.")
         return None
 
     return dict(zip(returns.columns, optimized.x))
@@ -212,7 +238,7 @@ def mean_cvar_optimization(returns, confidence_level=0.95):
         problem.solve()
         return dict(zip(returns.columns, weights.value))
     except Exception as e:
-        st.error(f"Mean-CVaR Optimization failed: {e}")
+        st.error(f"❌ Mean-CVaR Optimization failed: {e}")
         return None
 
 # Function to perform Hierarchical Risk Parity Optimization
@@ -223,7 +249,7 @@ def hierarchical_risk_parity_optimization(returns, linkage_method='single'):
 
     # Ensure covariance matrix does not contain NaN values
     if cov_matrix.isnull().values.any():
-        st.error("Covariance matrix contains NaN values. HRP optimization cannot proceed.")
+        st.error("❌ Covariance matrix contains NaN values. HRP optimization cannot proceed.")
         return None
 
     # Compute the linkage matrix for hierarchical clustering
@@ -240,7 +266,7 @@ def hierarchical_risk_parity_optimization(returns, linkage_method='single'):
 
     # Check if the weights contain NaN values
     if pd.isnull(weights).any():
-        st.error("HRP optimization resulted in NaN values for weights.")
+        st.error("❌ HRP optimization resulted in NaN values for weights.")
         return None
 
     return dict(zip(sorted_returns.columns, weights))
@@ -268,8 +294,8 @@ def hrp_weights(cov_matrix, sorted_indices):
                 right_cluster = cluster[split_point:]
 
                 # Calculate the average covariance within each cluster
-                left_cov = cov_matrix.iloc[left_cluster, left_cluster].mean().mean()
-                right_cov = cov_matrix.iloc[right_cluster, right_cluster].mean().mean()
+                left_cov = cov_matrix.loc[left_cluster, left_cluster].values.mean()
+                right_cov = cov_matrix.loc[right_cluster, right_cluster].values.mean()
 
                 # Allocate weights based on inverse variance
                 if (left_cov + right_cov) == 0:
@@ -386,9 +412,9 @@ def calculate_weighted_average_allocation(optimized_portfolios):
     st.markdown("### 💼 Average Allocation for Each Stock:")
     allocation_df = pd.DataFrame({
         'Stock': avg_allocation.keys(),
-        'Allocation (%)': avg_allocation.values(),
-        'Allocation (USD)': usd_allocation.values()
-    }).round(2)
+        'Allocation (%)': [f"{v*100:.2f}%" for v in avg_allocation.values()],
+        'Allocation (USD)': [f"${v:.2f}" for v in usd_allocation.values()]
+    })
     st.table(allocation_df)
 
     # Plot average allocation
@@ -434,7 +460,7 @@ def grid_search_optimization(returns, risk_free_rate, market_prices, mcaps, cov_
                     best_sharpe = sharpe
                     best_params = {'method': method, 'weights': weights, 'params': params}
         except Exception as e:
-            st.error(f"Error with parameters {params}: {e}")
+            st.error(f"❌ Error with parameters {params}: {e}")
             continue
 
     return best_params
@@ -504,41 +530,47 @@ def main():
             st.error("❌ Please enter at least one ticker symbol.")
             return
 
-        headers = {'User-Agent': 'PortfolioOptimizationApp/1.0'}
-        console_output = []
-        
-        # Validate and Fetch Market Data
+        # Validate Tickers
+        with st.spinner("🔍 Validating ticker symbols..."):
+            valid_tickers = validate_tickers(tickers)
+            if not valid_tickers:
+                st.error("❌ No valid tickers available after validation.")
+                return
+            else:
+                st.success(f"✅ Valid tickers: {', '.join(valid_tickers)}")
+
+        # Fetch Market Data
         with st.spinner("📥 Fetching market data..."):
-            market_prices = fetch_market_data(tickers, start_date, end_date)
+            market_prices, mcaps = fetch_data(valid_tickers, start_date, end_date)
             if market_prices.empty:
                 st.error("❌ Failed to fetch market data. Please check your ticker symbols and internet connection.")
                 return
             else:
                 st.success("✅ Market data fetched successfully.")
-        
+
         # Handle Single Ticker Scenario
         if isinstance(market_prices, pd.Series):
             market_prices = market_prices.to_frame()
-        
+
         # Calculate Returns
         returns = calculate_daily_returns(market_prices)
         if returns.empty:
             st.error("❌ No return data available to perform optimizations.")
             return
-        
+
         # Get user views for Black-Litterman (if selected)
         viewdict = {}
         if "Black-Litterman Model" in selected_techniques:
             st.subheader("📝 Enter Your Views for Black-Litterman Model")
             st.markdown("Provide your expected returns (in percentage) for each ticker:")
-            for ticker in tickers:
+            for ticker in valid_tickers:
                 view = st.number_input(
                     f"Expected Return for {ticker} (%)",
                     value=0.0,
                     key=f"view_{ticker}"
                 )
                 viewdict[ticker] = view / 100  # Convert to decimal
-        
+
         # Initialize dictionaries to store optimized portfolios and performance metrics
         optimized_portfolios = {}
         performance_metrics = {}
@@ -557,9 +589,9 @@ def main():
                             risk_free_rate
                         )
                         performance_metrics['Mean Variance'] = {
-                            'Expected Return (%)': portfolio_return,
-                            'Volatility (%)': portfolio_volatility,
-                            'Sharpe Ratio': sharpe_ratio
+                            'Expected Return (%)': f"{portfolio_return*100:.2f}",
+                            'Volatility (%)': f"{portfolio_volatility*100:.2f}",
+                            'Sharpe Ratio': f"{sharpe_ratio:.2f}"
                         }
                         st.success("✅ Mean Variance Optimization completed successfully.")
                         plot_asset_allocation(mv_weights, "📊 Mean Variance Asset Allocation")
@@ -567,15 +599,16 @@ def main():
                     if not viewdict:
                         st.warning("⚠️ No views provided. Skipping Black-Litterman Optimization.")
                         continue
-                    # For Black-Litterman, we need market capitalization weights
-                    mcaps = expected_returns.market_cap_weights(market_prices)
+                    if not mcaps:
+                        st.warning("⚠️ Market capitalizations not available. Skipping Black-Litterman Optimization.")
+                        continue
                     bl_weights, bl_performance = black_litterman_allocation(market_prices, mcaps, returns.cov(), viewdict, tau=0.05)
                     if bl_weights:
                         optimized_portfolios['Black-Litterman'] = bl_weights
                         performance_metrics['Black-Litterman'] = {
-                            'Expected Return (%)': bl_performance[0],
-                            'Volatility (%)': bl_performance[1],
-                            'Sharpe Ratio': bl_performance[2]
+                            'Expected Return (%)': f"{bl_performance[0]*100:.2f}",
+                            'Volatility (%)': f"{bl_performance[1]*100:.2f}",
+                            'Sharpe Ratio': f"{bl_performance[2]:.2f}"
                         }
                         st.success("✅ Black-Litterman Optimization completed successfully.")
                         plot_asset_allocation(bl_weights, "📊 Black-Litterman Asset Allocation")
@@ -589,9 +622,9 @@ def main():
                             risk_free_rate
                         )
                         performance_metrics['Risk Parity'] = {
-                            'Expected Return (%)': portfolio_return,
-                            'Volatility (%)': portfolio_volatility,
-                            'Sharpe Ratio': sharpe_ratio
+                            'Expected Return (%)': f"{portfolio_return*100:.2f}",
+                            'Volatility (%)': f"{portfolio_volatility*100:.2f}",
+                            'Sharpe Ratio': f"{sharpe_ratio:.2f}"
                         }
                         st.success("✅ Risk Parity Optimization completed successfully.")
                         plot_asset_allocation(rp_weights, "📊 Risk Parity Asset Allocation")
@@ -605,9 +638,9 @@ def main():
                             risk_free_rate
                         )
                         performance_metrics['Mean CVaR'] = {
-                            'Expected Return (%)': portfolio_return,
-                            'Volatility (%)': portfolio_volatility,
-                            'Sharpe Ratio': sharpe_ratio
+                            'Expected Return (%)': f"{portfolio_return*100:.2f}",
+                            'Volatility (%)': f"{portfolio_volatility*100:.2f}",
+                            'Sharpe Ratio': f"{sharpe_ratio:.2f}"
                         }
                         st.success("✅ Mean-CVaR Optimization completed successfully.")
                         plot_asset_allocation(cvar_weights, "📊 Mean-CVaR Asset Allocation")
@@ -621,13 +654,13 @@ def main():
                             risk_free_rate
                         )
                         performance_metrics['Hierarchical Risk Parity'] = {
-                            'Expected Return (%)': portfolio_return,
-                            'Volatility (%)': portfolio_volatility,
-                            'Sharpe Ratio': sharpe_ratio
+                            'Expected Return (%)': f"{portfolio_return*100:.2f}",
+                            'Volatility (%)': f"{portfolio_volatility*100:.2f}",
+                            'Sharpe Ratio': f"{sharpe_ratio:.2f}"
                         }
                         st.success("✅ Hierarchical Risk Parity Optimization completed successfully.")
                         plot_asset_allocation(hrp_weights_dict, "📊 Hierarchical Risk Parity Asset Allocation")
-        
+
         if not optimized_portfolios:
             st.error("❌ No portfolios were successfully optimized.")
             return
@@ -638,10 +671,8 @@ def main():
 
         # Display performance metrics
         st.subheader("📊 Portfolio Performance Metrics")
-        for method, metrics in performance_metrics.items():
-            st.markdown(f"**{method}:**")
-            metrics_df = pd.DataFrame(metrics, index=[0])
-            st.table(metrics_df)
+        metrics_df = pd.DataFrame(performance_metrics).T
+        st.table(metrics_df)
 
         # Calculate Weighted Average Allocation
         st.subheader("📊 Weighted Average Allocation")
@@ -649,17 +680,15 @@ def main():
 
         # Grid Search Optimization (Optional)
         st.subheader("🔍 Grid Search Optimization")
-        best_params = grid_search_optimization(returns, risk_free_rate, market_prices, None, returns.cov(), viewdict)
-        if best_params:
-            st.write(f"**Best Parameters:** {best_params}")
-        else:
-            st.warning("⚠️ Grid search did not find better parameters.")
+        with st.spinner("🕵️ Performing grid search optimization..."):
+            best_params = grid_search_optimization(returns, risk_free_rate, market_prices, mcaps, returns.cov(), viewdict)
+            if best_params:
+                st.markdown(f"**Best Parameters Found:**")
+                st.json(best_params)
+            else:
+                st.warning("⚠️ Grid search did not find better parameters.")
 
-        # Display Console Output
-        if console_output:
-            st.subheader("📝 Console Output")
-            console_text = '\n'.join(console_output)
-            st.text_area("Console Output", value=console_text, height=300)
+        # Note: The `console_output` section has been removed as it wasn't utilized in the updated functions.
 
 if __name__ == "__main__":
     main()

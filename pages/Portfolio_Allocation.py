@@ -40,14 +40,55 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Function to fetch data using yfinance with caching
+# Function to fetch market data using yfinance with enhanced error handling
 @st.cache_data(show_spinner=False)
 def fetch_market_data(tickers, start_date, end_date):
     try:
-        data = yf.download(tickers, start=start_date, end=end_date)['Adj Close']
-        if isinstance(data, pd.Series):
-            data = data.to_frame()
-        return data
+        # Fetch data using yfinance
+        data = yf.download(tickers, start=start_date, end=end_date, progress=False, group_by='ticker')
+        
+        if data.empty:
+            raise ValueError("No data fetched. Please check your ticker symbols and date range.")
+        
+        adj_close = pd.DataFrame()
+        invalid_tickers = []
+        
+        # Handle single and multiple tickers
+        if isinstance(tickers, str):
+            tickers = [tickers]
+        
+        for ticker in tickers:
+            if ticker not in data.columns.levels[0]:
+                # Single ticker might not have multi-level columns
+                if isinstance(data, pd.Series):
+                    adj_close[ticker] = data
+                elif 'Adj Close' in data.columns:
+                    adj_close[ticker] = data['Adj Close']
+                else:
+                    invalid_tickers.append(ticker)
+                continue
+            else:
+                if 'Adj Close' in data[ticker].columns:
+                    adj_close[ticker] = data[ticker]['Adj Close']
+                else:
+                    invalid_tickers.append(ticker)
+        
+        # Drop tickers with all NaN values
+        adj_close.dropna(axis=1, how='all', inplace=True)
+        
+        # Identify remaining invalid tickers
+        remaining_invalid = [ticker for ticker in tickers if ticker not in adj_close.columns]
+        if remaining_invalid:
+            invalid_tickers.extend(remaining_invalid)
+        
+        # Inform the user about invalid tickers
+        if invalid_tickers:
+            st.warning(f"⚠️ The following tickers were invalid or have no 'Adj Close' data and have been excluded: {', '.join(invalid_tickers)}")
+        
+        if adj_close.empty:
+            raise ValueError("No valid tickers with 'Adj Close' data found.")
+        
+        return adj_close
     except Exception as e:
         st.error(f"Error fetching market data: {e}")
         return pd.DataFrame()
@@ -234,7 +275,10 @@ def hrp_weights(cov_matrix, sorted_indices):
                 right_cov = cov_matrix.iloc[right_cluster, right_cluster].mean().mean()
 
                 # Allocate weights based on inverse variance
-                alloc_factor = 1 - left_cov / (left_cov + right_cov)
+                if (left_cov + right_cov) == 0:
+                    alloc_factor = 0.5
+                else:
+                    alloc_factor = 1 - left_cov / (left_cov + right_cov)
                 weights[left_cluster] *= alloc_factor
                 weights[right_cluster] *= (1 - alloc_factor)
 
@@ -430,8 +474,15 @@ def main():
         max_value=datetime.date.today()
     )
     
-    # Removed Alpha Vantage API Key Input
-    # If you have other API keys, consider using Streamlit's Secrets Management
+    # Set Default Risk-Free Rate (e.g., 2%)
+    risk_free_rate = st.sidebar.number_input(
+        "💵 Risk-Free Rate (%)",
+        min_value=0.0,
+        max_value=10.0,
+        value=2.0,
+        step=0.1,
+        help="Assumed risk-free rate for Sharpe Ratio calculations."
+    ) / 100  # Convert to decimal
     
     # Selection of Optimization Techniques
     st.sidebar.header("📈 Optimization Techniques")
@@ -477,10 +528,6 @@ def main():
         if returns.empty:
             st.error("❌ No return data available to perform optimizations.")
             return
-        
-        # Set Default Risk-Free Rate (e.g., 2%)
-        risk_free_rate = 0.02  # 2%
-        st.write(f"**Risk-Free Rate Assumed:** {risk_free_rate * 100:.2f}%")
         
         # Get user views for Black-Litterman (if selected)
         viewdict = {}

@@ -23,20 +23,27 @@ def main():
     - **Portfolio Allocation**: Optimize your portfolio with multiple techniques.
     """)
 
+    st.markdown("---")
     st.subheader("📍 Select a Module to Get Started:")
-    col1, col2, col3 = st.columns(3)
 
-    with col1:
-        if st.button("Sec Analysis"):
+    # Button layout with centered alignment
+    col1, col2, col3 = st.columns([1, 2, 1])  # Adjust column widths for centering
+
+    with col2:  # Place buttons in the middle column
+        st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
+        if st.button("📘 Sec Analysis"):
             switch_page("Sec_Analysis")
-
-    with col2:
-        if st.button("Prediction"):
+        
+        st.markdown("<div style='margin: 10px;'></div>", unsafe_allow_html=True)  # Add spacing
+        
+        if st.button("📈 Prediction"):
             switch_page("Forecasting_Script")
-
-    with col3:
-        if st.button("Portfolio Allocation"):
+        
+        st.markdown("<div style='margin: 10px;'></div>", unsafe_allow_html=True)  # Add spacing
+        
+        if st.button("📊 Portfolio Allocation"):
             switch_page("Portfolio_Allocation")
+        st.markdown("</div>", unsafe_allow_html=True)  # Close the centered div
 
 
 if __name__ == "__main__":

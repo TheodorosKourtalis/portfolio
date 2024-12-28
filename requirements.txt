@@ -12,3 +12,4 @@ plotly
 statsmodels
 tensorflow
 streamlit-extras
+cvxpy

@@ -20,6 +20,7 @@ import tempfile
 import yfinance as yf
 import plotly.express as px
 from plotly.subplots import make_subplots
+from statsmodels.graphics.tsaplots import plot_acf
 
 # Suppress future warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -96,7 +97,7 @@ def get_company_data(ticker, headers):
     return all_forms, company_facts
 
 # Function to calculate financial ratios
-def calculate_ratios(company_facts):
+def calculate_ratios(company_facts, ticker):
     ratios = {}
     us_gaap = company_facts.get('facts', {}).get('us-gaap', {})
 
@@ -179,7 +180,7 @@ def calculate_ratios(company_facts):
         ratios['Dividend Yield'] = (annual_dividends_per_share / market_price_per_share) * 100 if annual_dividends_per_share and market_price_per_share else None
 
     except ZeroDivisionError as e:
-        st.error(f"Error calculating ratios: {e}")
+        st.error(f"Error calculating ratios for {ticker}: {e}")
         return None
 
     return ratios
@@ -210,7 +211,7 @@ def log_and_plot_ratios(ratios, company_name, save_plots=False, plot_save_path=N
         if not df.empty:
             fig = px.bar(df, x='Ratio', y='Value', title=f"{company_name} - {category}", labels={'Value': 'Percentage (%)'}, text='Value')
             fig.update_traces(texttemplate='%{text:.2f}', textposition='outside')
-            fig.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
+            fig.update_layout(uniformtext_minsize=8, uniformtext_mode='hide', xaxis_tickangle=-45)
             st.plotly_chart(fig, use_container_width=True)
 
             # Save plot if required
@@ -241,9 +242,10 @@ def plot_historical_data(data, metric, company_name, save_plots=False, plot_save
     plt.xticks(rotation=45)
     plt.tight_layout()
 
+    st.pyplot(fig)
+
     if save_plots and plot_save_path:
         plt.savefig(os.path.join(plot_save_path, f"{company_name}_historical_{metric}.png"))
-    st.pyplot(fig)
     plt.close(fig)
 
 # Function to plot timeseries using Plotly
@@ -298,13 +300,10 @@ def append_console_output(output, save_path=None):
 
 # Function to display console outputs
 def display_console_output(console_output):
-    st.text('\n'.join(console_output))
+    st.text_area("Console Output", value='\n'.join(console_output), height=300)
 
 # Function to plot autocorrelation using Plotly
 def plot_autocorrelation(data, title, xlabel, ylabel, save_path=None):
-    from statsmodels.graphics.tsaplots import plot_acf
-    import numpy as np
-
     fig, ax = plt.subplots(figsize=(18, 6))
     plot_acf(data, ax=ax, lags=20)
     ax.set_title(title, fontsize=16, weight='bold')
@@ -387,7 +386,7 @@ def main():
                 st.error(f"❌ Failed to retrieve data for {ticker}.")
                 continue
 
-            ratios = calculate_ratios(company_facts)
+            ratios = calculate_ratios(company_facts, ticker)
             if ratios:
                 log_and_plot_ratios(ratios, ticker, save_output, plot_save_path, console_output)
             else:
@@ -623,7 +622,6 @@ def main():
                             # Save plot if required
                             if save_output and plot_save_path:
                                 fig.write_image(os.path.join(plot_save_path, f"{ticker}_historical_{metric}.png"))
-
                         except Exception as e:
                             st.error(f"⚠️ Error processing historical data for {metric}: {e}")
                             continue
@@ -631,8 +629,7 @@ def main():
         # Display Console Output
         if console_output:
             st.subheader("📝 Console Output")
-            console_text = '\n'.join(console_output)
-            st.text_area("Console Output", value=console_text, height=300)
+            display_console_output(console_output)
 
         # Optionally, provide download links for saved outputs
         if save_output:

@@ -25,6 +25,7 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 from statsmodels.graphics.tsaplots import plot_acf
 import os
+from collections import OrderedDict
 
 # Suppress future warnings
 import warnings
@@ -456,9 +457,10 @@ def main():
     
     tickers_input = st.sidebar.text_input(
         "📊 Enter Ticker Symbols (comma-separated)",
-        value="AAPL, MSFT"
+        value="AAPL, MSFT, AAPL, MSFT"  # Example with duplicates
     )
-    tickers = [ticker.strip().upper() for ticker in tickers_input.split(',') if ticker.strip()]
+    # Remove duplicates while preserving order
+    tickers = list(OrderedDict.fromkeys([ticker.strip().upper() for ticker in tickers_input.split(',') if ticker.strip()]))
     
     start_date = st.sidebar.date_input(
         "📅 Start Date",

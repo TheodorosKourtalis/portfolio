@@ -497,6 +497,7 @@ def grid_search_optimization(returns, risk_free_rate, market_prices, mcaps, cov_
 
 # Main Streamlit App
 def main():
+    # Set the title and introductory text
     st.title("📈 Portfolio Optimization Dashboard")
     st.markdown("""
     This application fetches and analyzes financial data for specified companies. 
@@ -504,15 +505,17 @@ def main():
     financial metrics and portfolio allocations.
     """)
 
-    # Sidebar Inputs
+    # Sidebar for input parameters
     st.sidebar.header("🔧 Input Parameters")
     
+    # Input for ticker symbols
     tickers_input = st.sidebar.text_input(
         "📊 Enter Ticker Symbols (comma-separated)",
         value="AAPL, MSFT"
     )
     tickers = [ticker.strip().upper() for ticker in tickers_input.split(',') if ticker.strip()]
-    
+
+    # Input for start and end dates
     start_date = st.sidebar.date_input(
         "📅 Start Date",
         value=datetime.date.today() - datetime.timedelta(days=365),
@@ -526,8 +529,8 @@ def main():
         min_value=start_date,
         max_value=datetime.date.today()
     )
-    
-    # Set Default Risk-Free Rate (e.g., 2%)
+
+    # Input for risk-free rate
     risk_free_rate = st.sidebar.number_input(
         "💵 Risk-Free Rate (%)",
         min_value=0.0,
@@ -536,8 +539,8 @@ def main():
         step=0.1,
         help="Assumed risk-free rate for Sharpe Ratio calculations."
     ) / 100  # Convert to decimal
-    
-    # Selection of Optimization Techniques
+
+    # Input for optimization techniques
     st.sidebar.header("📈 Optimization Techniques")
     techniques_options = {
         "Mean Variance Optimization": "Mean Variance Optimization",
@@ -549,18 +552,19 @@ def main():
     selected_techniques = st.sidebar.multiselect(
         "🔍 Select Optimization Techniques:",
         options=list(techniques_options.values()),
-        default=list(techniques_options.values())  # Select all by default
+        default=list(techniques_options.values())
     )
-    
+
     # Run Analysis Button
     run_analysis = st.sidebar.button("🚀 Run Analysis")
 
     if run_analysis:
+        # Check for ticker input
         if not tickers:
             st.error("❌ Please enter at least one ticker symbol.")
             return
 
-        # Validate Tickers
+        # Validate ticker symbols
         with st.spinner("🔍 Validating ticker symbols..."):
             valid_tickers = validate_tickers(tickers)
             if not valid_tickers:
@@ -569,7 +573,7 @@ def main():
             else:
                 st.success(f"✅ Valid tickers: {', '.join(valid_tickers)}")
 
-        # Fetch Market Data
+        # Fetch market data
         with st.spinner("📥 Fetching market data..."):
             market_prices, mcaps = fetch_data(valid_tickers, start_date, end_date)
             if market_prices.empty:
@@ -578,17 +582,17 @@ def main():
             else:
                 st.success("✅ Market data fetched successfully.")
 
-        # Handle Single Ticker Scenario
+        # Handle single ticker case
         if isinstance(market_prices, pd.Series):
             market_prices = market_prices.to_frame()
 
-        # Calculate Returns
+        # Calculate returns
         returns = calculate_daily_returns(market_prices)
         if returns.empty:
             st.error("❌ No return data available to perform optimizations.")
             return
 
-        # Get user views for Black-Litterman (if selected)
+        # Get user views for Black-Litterman Model
         viewdict = {}
         if "Black-Litterman Model" in selected_techniques:
             st.subheader("📝 Enter Your Views for Black-Litterman Model")
@@ -601,97 +605,103 @@ def main():
                 )
                 viewdict[ticker] = view / 100  # Convert to decimal
 
-        # Initialize dictionaries to store optimized portfolios and performance metrics
+        # Initialize results dictionaries
         optimized_portfolios = {}
         performance_metrics = {}
-        
-        # Perform selected optimization techniques
+
+        # Execute selected optimization techniques
         for technique in selected_techniques:
             st.markdown(f"### 🔍 {technique}")
             with st.spinner(f"🛠️ Performing {technique}..."):
-                if technique == "Mean Variance Optimization":
-                    mv_weights = mean_variance_optimization(returns, risk_free_rate)
-                    if mv_weights:
-                        optimized_portfolios['Mean Variance'] = mv_weights
-                        portfolio_return, portfolio_volatility, sharpe_ratio = calculate_portfolio_performance(
-                            np.array(list(mv_weights.values())),
-                            returns,
-                            risk_free_rate
-                        )
-                        performance_metrics['Mean Variance'] = {
-                            'Expected Return (%)': f"{portfolio_return*100:.2f}",
-                            'Volatility (%)': f"{portfolio_volatility*100:.2f}",
-                            'Sharpe Ratio': f"{sharpe_ratio:.2f}"
-                        }
-                        st.success("✅ Mean Variance Optimization completed successfully.")
-                        plot_asset_allocation(mv_weights, "📊 Mean Variance Asset Allocation")
-                elif technique == "Black-Litterman Model":
-                    if not viewdict:
-                        st.warning("⚠️ No views provided. Skipping Black-Litterman Optimization.")
-                        continue
-                    if not mcaps:
-                        st.warning("⚠️ Market capitalizations not available. Skipping Black-Litterman Optimization.")
-                        continue
-                    bl_weights, bl_performance = black_litterman_allocation(market_prices, mcaps, returns.cov(), viewdict, tau=0.05)
-                    if bl_weights:
-                        optimized_portfolios['Black-Litterman'] = bl_weights
-                        performance_metrics['Black-Litterman'] = {
-                            'Expected Return (%)': f"{bl_performance[0]*100:.2f}",
-                            'Volatility (%)': f"{bl_performance[1]*100:.2f}",
-                            'Sharpe Ratio': f"{bl_performance[2]:.2f}"
-                        }
-                        st.success("✅ Black-Litterman Optimization completed successfully.")
-                        plot_asset_allocation(bl_weights, "📊 Black-Litterman Asset Allocation")
-                elif technique == "Risk Parity Optimization":
-                    rp_weights = risk_parity_optimization(returns)
-                    if rp_weights:
-                        optimized_portfolios['Risk Parity'] = rp_weights
-                        portfolio_return, portfolio_volatility, sharpe_ratio = calculate_portfolio_performance(
-                            np.array(list(rp_weights.values())),
-                            returns,
-                            risk_free_rate
-                        )
-                        performance_metrics['Risk Parity'] = {
-                            'Expected Return (%)': f"{portfolio_return*100:.2f}",
-                            'Volatility (%)': f"{portfolio_volatility*100:.2f}",
-                            'Sharpe Ratio': f"{sharpe_ratio:.2f}"
-                        }
-                        st.success("✅ Risk Parity Optimization completed successfully.")
-                        plot_asset_allocation(rp_weights, "📊 Risk Parity Asset Allocation")
-                elif technique == "Mean-CVaR Optimization":
-                    cvar_weights = mean_cvar_optimization(returns, confidence_level=0.95)
-                    if cvar_weights:
-                        optimized_portfolios['Mean CVaR'] = cvar_weights
-                        portfolio_return, portfolio_volatility, sharpe_ratio = calculate_portfolio_performance(
-                            np.array(list(cvar_weights.values())),
-                            returns,
-                            risk_free_rate
-                        )
-                        performance_metrics['Mean CVaR'] = {
-                            'Expected Return (%)': f"{portfolio_return*100:.2f}",
-                            'Volatility (%)': f"{portfolio_volatility*100:.2f}",
-                            'Sharpe Ratio': f"{sharpe_ratio:.2f}"
-                        }
-                        st.success("✅ Mean-CVaR Optimization completed successfully.")
-                        plot_asset_allocation(cvar_weights, "📊 Mean-CVaR Asset Allocation")
-                elif technique == "Hierarchical Risk Parity":
-                    hrp_weights_dict = hierarchical_risk_parity_optimization(returns, linkage_method='single')
-                    if hrp_weights_dict:
-                        optimized_portfolios['Hierarchical Risk Parity'] = hrp_weights_dict
-                        portfolio_return, portfolio_volatility, sharpe_ratio = calculate_portfolio_performance(
-                            np.array(list(hrp_weights_dict.values())),
-                            returns,
-                            risk_free_rate
-                        )
-                        performance_metrics['Hierarchical Risk Parity'] = {
-                            'Expected Return (%)': f"{portfolio_return*100:.2f}",
-                            'Volatility (%)': f"{portfolio_volatility*100:.2f}",
-                            'Sharpe Ratio': f"{sharpe_ratio:.2f}"
-                        }
-                        st.success("✅ Hierarchical Risk Parity Optimization completed successfully.")
-                        plot_asset_allocation(hrp_weights_dict, "📊 Hierarchical Risk Parity Asset Allocation")
+                try:
+                    if technique == "Mean Variance Optimization":
+                        mv_weights = mean_variance_optimization(returns, risk_free_rate)
+                        if mv_weights:
+                            optimized_portfolios['Mean Variance'] = mv_weights
+                            portfolio_return, portfolio_volatility, sharpe_ratio = calculate_portfolio_performance(
+                                np.array(list(mv_weights.values())), returns, risk_free_rate
+                            )
+                            performance_metrics['Mean Variance'] = {
+                                'Expected Return (%)': f"{portfolio_return * 100:.2f}",
+                                'Volatility (%)': f"{portfolio_volatility * 100:.2f}",
+                                'Sharpe Ratio': f"{sharpe_ratio:.2f}"
+                            }
+                            plot_asset_allocation(mv_weights, "📊 Mean Variance Asset Allocation")
 
-        if not optimized_portfolios:
+                    elif technique == "Black-Litterman Model":
+                        if not viewdict:
+                            st.warning("⚠️ No views provided. Skipping Black-Litterman Optimization.")
+                            continue
+                        if not mcaps:
+                            st.warning("⚠️ Market capitalizations not available. Skipping Black-Litterman Optimization.")
+                            continue
+                        bl_weights, bl_performance = black_litterman_allocation(market_prices, mcaps, returns.cov(), viewdict)
+                        if bl_weights:
+                            optimized_portfolios['Black-Litterman'] = bl_weights
+                            performance_metrics['Black-Litterman'] = {
+                                'Expected Return (%)': f"{bl_performance[0] * 100:.2f}",
+                                'Volatility (%)': f"{bl_performance[1] * 100:.2f}",
+                                'Sharpe Ratio': f"{bl_performance[2]:.2f}"
+                            }
+                            plot_asset_allocation(bl_weights, "📊 Black-Litterman Asset Allocation")
+
+                    elif technique == "Risk Parity Optimization":
+                        rp_weights = risk_parity_optimization(returns)
+                        if rp_weights:
+                            optimized_portfolios['Risk Parity'] = rp_weights
+                            portfolio_return, portfolio_volatility, sharpe_ratio = calculate_portfolio_performance(
+                                np.array(list(rp_weights.values())), returns, risk_free_rate
+                            )
+                            performance_metrics['Risk Parity'] = {
+                                'Expected Return (%)': f"{portfolio_return * 100:.2f}",
+                                'Volatility (%)': f"{portfolio_volatility * 100:.2f}",
+                                'Sharpe Ratio': f"{sharpe_ratio:.2f}"
+                            }
+                            plot_asset_allocation(rp_weights, "📊 Risk Parity Asset Allocation")
+
+                    elif technique == "Mean-CVaR Optimization":
+                        cvar_weights = mean_cvar_optimization(returns)
+                        if cvar_weights:
+                            optimized_portfolios['Mean CVaR'] = cvar_weights
+                            portfolio_return, portfolio_volatility, sharpe_ratio = calculate_portfolio_performance(
+                                np.array(list(cvar_weights.values())), returns, risk_free_rate
+                            )
+                            performance_metrics['Mean CVaR'] = {
+                                'Expected Return (%)': f"{portfolio_return * 100:.2f}",
+                                'Volatility (%)': f"{portfolio_volatility * 100:.2f}",
+                                'Sharpe Ratio': f"{sharpe_ratio:.2f}"
+                            }
+                            plot_asset_allocation(cvar_weights, "📊 Mean-CVaR Asset Allocation")
+
+                    elif technique == "Hierarchical Risk Parity":
+                        hrp_weights_dict = hierarchical_risk_parity_optimization(returns)
+                        if hrp_weights_dict:
+                            optimized_portfolios['Hierarchical Risk Parity'] = hrp_weights_dict
+                            portfolio_return, portfolio_volatility, sharpe_ratio = calculate_portfolio_performance(
+                                np.array(list(hrp_weights_dict.values())), returns, risk_free_rate
+                            )
+                            performance_metrics['Hierarchical Risk Parity'] = {
+                                'Expected Return (%)': f"{portfolio_return * 100:.2f}",
+                                'Volatility (%)': f"{portfolio_volatility * 100:.2f}",
+                                'Sharpe Ratio': f"{sharpe_ratio:.2f}"
+                            }
+                            plot_asset_allocation(hrp_weights_dict, "📊 Hierarchical Risk Parity Asset Allocation")
+
+                except Exception as e:
+                    st.error(f"❌ {technique} failed: {e}")
+
+        # Display results
+        if optimized_portfolios:
+            st.subheader("📈 Optimized Portfolios Cumulative Returns")
+            plot_optimized_portfolios(optimized_portfolios, market_prices, start_date, end_date)
+
+            st.subheader("📊 Portfolio Performance Metrics")
+            metrics_df = pd.DataFrame(performance_metrics).T
+            st.table(metrics_df)
+
+            st.subheader("📊 Weighted Average Allocation")
+            calculate_weighted_average_allocation(optimized_portfolios)
+        else:
             st.error("❌ No portfolios were successfully optimized.")
             return
 

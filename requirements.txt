@@ -13,4 +13,4 @@ statsmodels
 tensorflow
 streamlit-extras
 cvxpy
-pypfopt
+

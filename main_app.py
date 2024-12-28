@@ -18,30 +18,25 @@ def main():
     Welcome to the **Stock Analysis and Forecasting Application**!
     
     Navigate through the app to explore various features:
-    - **Main App**: Overview and navigation.
-    - **Forecasting Script**: Predict stock prices using advanced forecasting models.
-    - **Portfolio Allocation**: Optimize your portfolio with multiple techniques.
     - **Sec Analysis**: Conduct detailed security analysis.
+    - **Prediction (Forecasting Script)**: Predict stock prices using advanced forecasting models.
+    - **Portfolio Allocation**: Optimize your portfolio with multiple techniques.
     """)
 
     st.subheader("📍 Select a Module to Get Started:")
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("Main App"):
-            switch_page("Main_App")
+        if st.button("Sec Analysis"):
+            switch_page("Sec_Analysis")
 
     with col2:
-        if st.button("Forecasting Script"):
+        if st.button("Prediction"):
             switch_page("Forecasting_Script")
 
     with col3:
         if st.button("Portfolio Allocation"):
             switch_page("Portfolio_Allocation")
-
-    with col4:
-        if st.button("Sec Analysis"):
-            switch_page("Sec_Analysis")
 
 
 if __name__ == "__main__":

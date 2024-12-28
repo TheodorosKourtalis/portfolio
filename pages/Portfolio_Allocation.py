@@ -165,19 +165,49 @@ def mean_variance_optimization(returns, risk_free_rate=0.0):
 
 # Function for Black-Litterman Allocation
 def black_litterman_allocation(market_prices, mcaps, cov_matrix, viewdict, tau=0.05):
-    """Optimize portfolio using Black-Litterman model."""
+    """
+    Optimize portfolio using Black-Litterman model.
+
+    Parameters:
+    - market_prices (pd.DataFrame): Historical adjusted close prices (DataFrame).
+    - mcaps (dict): Market capitalizations for each ticker.
+    - cov_matrix (pd.DataFrame): Covariance matrix of asset returns.
+    - viewdict (dict): User-specified views on expected returns.
+    - tau (float): Scaling factor for the covariance matrix.
+
+    Returns:
+    - cleaned_weights (dict): Optimized portfolio weights.
+    - performance (tuple): Portfolio performance (expected return, volatility, Sharpe ratio).
+    """
     try:
-        delta = black_litterman.market_implied_risk_aversion(mcaps, market_prices)
+        # Ensure market_prices is converted to a pd.Series (latest prices)
+        latest_prices = market_prices.iloc[-1]
+        if not isinstance(latest_prices, pd.Series):
+            raise ValueError("market_prices must be convertible to a pd.Series of latest prices.")
+
+        # Ensure market capitalizations are complete
+        if any(pd.isna(mcaps.get(ticker)) for ticker in latest_prices.index):
+            raise ValueError("Market capitalizations are missing for some tickers.")
+
+        # Compute implied risk aversion
+        delta = black_litterman.market_implied_risk_aversion(latest_prices)
+
+        # Compute market-implied prior returns
         prior = black_litterman.market_implied_prior_returns(mcaps, delta, cov_matrix)
+
+        # Construct Black-Litterman model
         bl = BlackLittermanModel(cov_matrix, pi=prior, absolute_views=viewdict, tau=tau)
         posterior_rets = bl.bl_returns()
         posterior_cov = bl.bl_cov()
+
+        # Solve for optimal weights
         ef = EfficientFrontier(posterior_rets, posterior_cov)
         weights = ef.max_sharpe()
         cleaned_weights = ef.clean_weights()
         performance = ef.portfolio_performance(verbose=False)
-        
+
         return cleaned_weights, performance
+
     except Exception as e:
         st.error(f"❌ Black-Litterman Optimization failed: {e}")
         return None, None
